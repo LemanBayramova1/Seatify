@@ -436,6 +436,9 @@ export async function getAdminAnalytics() {
       monthlyRevenueAzn: bookings.filter((b) => b.date?.startsWith(monthPrefix)).reduce((sum, b) => sum + (b.minDeposit ?? 0), 0),
       activeVenuesCount: RESTAURANTS.length,
       registeredUsersCount: Object.keys(roles).length + 3,
+      totalVenuesCount: RESTAURANTS.length,
+      activeBookingsCount: bookings.filter((b) => b.status === "HELD" || b.status === "CONFIRMED").length,
+      totalDepositsAzn: bookings.filter((b) => b.status === "CONFIRMED").reduce((sum, b) => sum + (b.minDeposit ?? 0), 0),
       reservationTrend: days.map((date) => ({ date, count: bookings.filter((b) => b.date === date).length })),
       revenueTrend: days.map((date) => ({
         date,
@@ -450,6 +453,9 @@ export async function getAdminAnalytics() {
     monthlyRevenueAzn: data.monthlyRevenueAzn,
     activeVenuesCount: data.activeVenuesCount,
     registeredUsersCount: data.registeredUsersCount,
+    totalVenuesCount: data.totalVenuesCount,
+    activeBookingsCount: data.activeBookingsCount,
+    totalDepositsAzn: data.totalDepositsAzn,
     reservationTrend: data.reservationTrend.map((d) => ({ date: d.date, count: d.count })),
     revenueTrend: data.revenueTrend.map((d) => ({ date: d.date, amount: d.amount })),
     statusBreakdown: {
@@ -491,11 +497,28 @@ export async function toggleVenueActive(venueId, isActive) {
   return { ok: true };
 }
 
+/** Permanently removes a venue and everything under it (floor plans, tables, reservations, reviews). */
+export async function deleteAdminVenue(venueId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    return { ok: true };
+  }
+  await http.delete(`/admin/venues/${venueId}`);
+  return { ok: true };
+}
+
+const MOCK_USER_ACTIVE_KEY = "seatify.mock.userActive.v1";
+
+function mockUserActiveMap() {
+  return loadJSON(MOCK_USER_ACTIVE_KEY, {});
+}
+
 /** Every registered user on the platform (guests + owners). */
 export async function getAdminUsers() {
   if (USE_MOCKS) {
     await wait(jitter());
     const roles = loadJSON(MOCK_USER_ROLES_KEY, {});
+    const activeMap = mockUserActiveMap();
     const seeded = [
       { id: "seed-owner", name: "Demo Owner", email: "owner@seatify.dev", phone: null, role: "RestaurantOwner", createdAt: Date.now() },
       { id: "seed-customer", name: "Demo Customer", email: "customer@seatify.dev", phone: null, role: "Customer", createdAt: Date.now() },
@@ -508,10 +531,42 @@ export async function getAdminUsers() {
       role,
       createdAt: Date.now(),
     }));
-    return [...seeded, ...registered];
+    return [...seeded, ...registered].map((u) => ({ ...u, isActive: activeMap[u.id] ?? true }));
   }
   const { data } = await http.get("/admin/users");
   return data;
+}
+
+/** Updates a user's name/email/phone/role. */
+export async function updateAdminUser(userId, { name, email, phone, role }) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    return { id: userId, name, email, phone, role };
+  }
+  const { data } = await http.put(`/admin/users/${userId}`, { name, email, phone, role });
+  return data;
+}
+
+export async function toggleUserActive(userId, isActive) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const activeMap = mockUserActiveMap();
+    activeMap[userId] = isActive;
+    saveJSON(MOCK_USER_ACTIVE_KEY, activeMap);
+    return { ok: true };
+  }
+  await http.patch(`/admin/users/${userId}/active`, { isActive });
+  return { ok: true };
+}
+
+/** Permanently deletes a user account. */
+export async function deleteAdminUser(userId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    return { ok: true };
+  }
+  await http.delete(`/admin/users/${userId}`);
+  return { ok: true };
 }
 
 /** Every reservation on the platform, optionally filtered by date/status. */

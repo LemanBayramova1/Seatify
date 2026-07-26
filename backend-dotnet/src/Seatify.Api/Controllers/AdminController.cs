@@ -40,10 +40,37 @@ public class AdminController : ApiControllerBase
         return NoContent();
     }
 
+    [HttpDelete("venues/{id:guid}")]
+    public async Task<IActionResult> DeleteVenue(Guid id)
+    {
+        await _adminService.DeleteVenueAsync(id);
+        return NoContent();
+    }
+
     [HttpGet("users")]
     public async Task<ActionResult<List<AdminUserDto>>> GetUsers()
     {
         return Ok(await _adminService.GetUsersAsync());
+    }
+
+    [HttpPut("users/{id:guid}")]
+    public async Task<ActionResult<AdminUserDto>> UpdateUser(Guid id, UpdateUserRequestDto request)
+    {
+        return Ok(await _adminService.UpdateUserAsync(id, request));
+    }
+
+    [HttpPatch("users/{id:guid}/active")]
+    public async Task<IActionResult> ToggleUserActive(Guid id, ToggleUserActiveRequestDto request)
+    {
+        await _adminService.ToggleUserActiveAsync(id, request.IsActive);
+        return NoContent();
+    }
+
+    [HttpDelete("users/{id:guid}")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        await _adminService.DeleteUserAsync(id);
+        return NoContent();
     }
 
     [HttpGet("reservations")]

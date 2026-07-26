@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ROLES, useAuthStore } from "../../store/useAuthStore";
 import { LanguageSwitcher } from "../shared/LanguageSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
 export function Header() {
@@ -28,6 +29,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <LanguageSwitcher />
           {user ? (
             <UserMenu user={user} />

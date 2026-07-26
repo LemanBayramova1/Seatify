@@ -81,6 +81,11 @@ public class AuthService : IAuthService
             throw new UnauthorizedAppException("Invalid email or password.");
         }
 
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedAppException("This account has been deactivated. Contact support for help.");
+        }
+
         return BuildAuthResponse(user);
     }
 

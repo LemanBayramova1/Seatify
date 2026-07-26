@@ -27,6 +27,110 @@
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
+
+  /* Native <select>/<option> chrome. `color-scheme` tells the browser which built-in UI
+   * (including the OS-drawn option list) to render — without it, a dark page with light text
+   * still gets a browser-default WHITE option list, so white text on white background. The
+   * explicit option colors below back this up for engines that only partially honor it. */
+  select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+  select option:disabled {
+    color: #64748b;
+  }
+
+  html.light select {
+    color-scheme: light;
+  }
+  html.light select option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+  html.light select option:disabled {
+    color: #94a3b8;
+  }
+
+  /* -----------------------------------------------------------------------------------
+   * Light theme. The app's markup was written against one fixed dark palette (bg-ink-950,
+   * text-slate-100/.../500, border-white/5-20, bg-white/[0.0x] "glass" tints) with no `dark:`
+   * variants anywhere. Rather than add dark:/light: pairs to every file that uses them, this
+   * retargets the exact utility classes already in use, scoped under `html.light` (set by
+   * useThemeStore), so the whole app repaints consistently the moment the toggle flips.
+   * ----------------------------------------------------------------------------------- */
+  html.light body {
+    @apply bg-slate-50 text-slate-900;
+    background-image: radial-gradient(circle at 15% 0%, rgba(91, 124, 250, 0.1), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(124, 154, 255, 0.08), transparent 50%);
+  }
+
+  html.light ::-webkit-scrollbar-thumb {
+    background-color: rgba(15, 23, 42, 0.15);
+  }
+
+  html.light .bg-ink-950 {
+    background-color: #f8fafc;
+  }
+  html.light .bg-ink-950\/70 {
+    background-color: rgba(248, 250, 252, 0.85);
+  }
+  html.light .bg-ink-950\/60 {
+    background-color: rgba(248, 250, 252, 0.75);
+  }
+
+  html.light .text-slate-50 {
+    color: #0f172a;
+  }
+  html.light .text-slate-100 {
+    color: #0f172a;
+  }
+  html.light .text-slate-200 {
+    color: #1e293b;
+  }
+  html.light .text-slate-300 {
+    color: #334155;
+  }
+  html.light .text-slate-400 {
+    color: #64748b;
+  }
+  html.light .text-slate-500 {
+    color: #94a3b8;
+  }
+  html.light .text-slate-600 {
+    color: #cbd5e1;
+  }
+
+  html.light .border-white\/5 {
+    border-color: rgba(15, 23, 42, 0.06);
+  }
+  html.light .border-white\/10 {
+    border-color: rgba(15, 23, 42, 0.1);
+  }
+  html.light .border-white\/20 {
+    border-color: rgba(15, 23, 42, 0.16);
+  }
+
+  html.light .bg-white\/\[0\.03\] {
+    background-color: rgba(15, 23, 42, 0.035);
+  }
+  html.light .bg-white\/\[0\.04\] {
+    background-color: rgba(15, 23, 42, 0.045);
+  }
+  html.light .bg-white\/\[0\.05\] {
+    background-color: rgba(15, 23, 42, 0.055);
+  }
+  html.light .bg-white\/\[0\.06\] {
+    background-color: rgba(15, 23, 42, 0.06);
+  }
+  html.light .bg-white\/\[0\.07\] {
+    background-color: rgba(15, 23, 42, 0.07);
+  }
+  html.light .bg-white\/\[0\.08\] {
+    background-color: rgba(15, 23, 42, 0.08);
+  }
 }
 
 @layer components {
@@ -34,9 +138,20 @@
     @apply bg-white/[0.05] backdrop-blur-xl border border-white/10 shadow-glass;
   }
 
+  html.light .glass-panel {
+    @apply bg-white/80 border-slate-200 shadow-md shadow-slate-300/40;
+  }
+
   .glass-input {
     @apply bg-white/[0.06] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500
       focus:outline-none focus:ring-2 focus:ring-brand-500/60 focus:border-brand-400/50 transition;
+  }
+
+  html.light .glass-input {
+    @apply bg-white border-slate-300 text-slate-900;
+  }
+  html.light .glass-input::placeholder {
+    color: #94a3b8;
   }
 
   .btn-primary {
@@ -50,12 +165,24 @@
       px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/[0.08] disabled:opacity-40 disabled:pointer-events-none;
   }
 
+  html.light .btn-ghost {
+    @apply border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+  }
+
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10
       px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none;
   }
 
+  html.light .btn-danger {
+    @apply border-red-400/40 bg-red-50 text-red-600 hover:bg-red-100;
+  }
+
   .label-text {
     @apply block text-xs font-medium uppercase tracking-wide text-slate-400 mb-1;
+  }
+
+  html.light .label-text {
+    color: #94a3b8;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
@@ -17,17 +17,25 @@ import {
 } from "recharts";
 import {
   approveReservation,
+  deleteAdminUser,
+  deleteAdminVenue,
   getAdminAnalytics,
   getAdminReservations,
   getAdminUsers,
   getAdminVenues,
   rejectReservation,
+  toggleUserActive,
   toggleVenueActive,
+  updateAdminUser,
 } from "../services/apiService";
 import { GlassCard } from "../components/shared/GlassCard";
+import { ConfirmDialog } from "../components/shared/ConfirmDialog";
+import { EditUserModal } from "../components/admin/EditUserModal";
+import { EditVenueModal } from "../components/admin/EditVenueModal";
 
 const TABS = ["overview", "venues", "users", "reservations"];
 const STATUS_OPTIONS = ["Confirmed", "Held", "Cancelled", "Expired"];
+const ROLE_OPTIONS = ["Customer", "RestaurantOwner", "Admin"];
 const CHART_COLORS = { brand: "#5b7cfa", confirmed: "#22c55e", held: "#f5b23a", cancelled: "#ef4444", expired: "#64748b" };
 
 const STATUS_STYLE = {
@@ -48,8 +56,14 @@ export default function PlatformAdminPage() {
   const [users, setUsers] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [reservationFilters, setReservationFilters] = useState({ date: "", status: "" });
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("");
   const [loadError, setLoadError] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [actionMessage, setActionMessage] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editingVenueId, setEditingVenueId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { type: 'user'|'venue', id, name }
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +124,24 @@ export default function PlatformAdminPage() {
     };
   }, [tab, reservationFilters]);
 
+  const filteredUsers = useMemo(() => {
+    const query = userSearch.trim().toLowerCase();
+    return users.filter((u) => {
+      const matchesQuery =
+        !query ||
+        u.name?.toLowerCase().includes(query) ||
+        u.email?.toLowerCase().includes(query) ||
+        u.phone?.toLowerCase().includes(query);
+      const matchesRole = !userRoleFilter || u.role === userRoleFilter;
+      return matchesQuery && matchesRole;
+    });
+  }, [users, userSearch, userRoleFilter]);
+
+  function flashMessage(message) {
+    setActionMessage(message);
+    setTimeout(() => setActionMessage(null), 3000);
+  }
+
   async function handleToggleActive(venueId, isActive) {
     setActionError(null);
     const previous = venues;
@@ -119,6 +151,51 @@ export default function PlatformAdminPage() {
     } catch {
       setVenues(previous);
       setActionError(t("platformAdmin.actionFailed"));
+    }
+  }
+
+  async function handleSaveUser(form) {
+    const updated = await updateAdminUser(editingUser.id, form);
+    setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? { ...u, ...updated } : u)));
+    setEditingUser(null);
+    flashMessage(t("platformAdmin.userUpdated"));
+  }
+
+  async function handleToggleUserActive(userId, isActive) {
+    setActionError(null);
+    const previous = users;
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isActive } : u)));
+    try {
+      await toggleUserActive(userId, isActive);
+    } catch (err) {
+      setUsers(previous);
+      setActionError(err.response?.data?.error ?? t("platformAdmin.actionFailed"));
+    }
+  }
+
+  function handleSaveVenue(updated) {
+    setVenues((prev) => prev.map((v) => (v.id === editingVenueId ? { ...v, name: updated.name, city: updated.city } : v)));
+    setEditingVenueId(null);
+    flashMessage(t("platformAdmin.venueUpdated"));
+  }
+
+  async function handleConfirmDelete() {
+    setActionError(null);
+    const { type, id } = confirmDelete;
+    try {
+      if (type === "user") {
+        await deleteAdminUser(id);
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+        flashMessage(t("platformAdmin.userDeleted"));
+      } else {
+        await deleteAdminVenue(id);
+        setVenues((prev) => prev.filter((v) => v.id !== id));
+        flashMessage(t("platformAdmin.venueDeleted"));
+      }
+    } catch (err) {
+      setActionError(err.response?.data?.error ?? t("platformAdmin.actionFailed"));
+    } finally {
+      setConfirmDelete(null);
     }
   }
 
@@ -159,6 +236,11 @@ export default function PlatformAdminPage() {
       {actionError && (
         <div className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">{actionError}</div>
       )}
+      {actionMessage && (
+        <div className="mb-4 rounded-xl border border-status-free/30 bg-status-free/10 px-4 py-2.5 text-sm text-status-free">
+          {actionMessage}
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-2">
         {TABS.map((key) => (
@@ -176,8 +258,28 @@ export default function PlatformAdminPage() {
       </div>
 
       {tab === "overview" && <OverviewTab t={t} analytics={analytics} />}
-      {tab === "venues" && <VenuesTab t={t} venues={venues} onToggleActive={handleToggleActive} />}
-      {tab === "users" && <UsersTab t={t} users={users} />}
+      {tab === "venues" && (
+        <VenuesTab
+          t={t}
+          venues={venues}
+          onToggleActive={handleToggleActive}
+          onEdit={(v) => setEditingVenueId(v.id)}
+          onDelete={(v) => setConfirmDelete({ type: "venue", id: v.id, name: v.name })}
+        />
+      )}
+      {tab === "users" && (
+        <UsersTab
+          t={t}
+          users={filteredUsers}
+          search={userSearch}
+          onSearchChange={setUserSearch}
+          roleFilter={userRoleFilter}
+          onRoleFilterChange={setUserRoleFilter}
+          onToggleActive={handleToggleUserActive}
+          onEdit={setEditingUser}
+          onDelete={(u) => setConfirmDelete({ type: "user", id: u.id, name: u.name })}
+        />
+      )}
       {tab === "reservations" && (
         <ReservationsTab
           t={t}
@@ -186,6 +288,22 @@ export default function PlatformAdminPage() {
           onFiltersChange={setReservationFilters}
           onApprove={handleApprove}
           onReject={handleReject}
+        />
+      )}
+
+      {editingUser && <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={handleSaveUser} />}
+      {editingVenueId && (
+        <EditVenueModal venueId={editingVenueId} onClose={() => setEditingVenueId(null)} onSaved={handleSaveVenue} />
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          title={t(confirmDelete.type === "user" ? "platformAdmin.deleteUserConfirmTitle" : "platformAdmin.deleteVenueConfirmTitle")}
+          body={t(confirmDelete.type === "user" ? "platformAdmin.deleteUserConfirmBody" : "platformAdmin.deleteVenueConfirmBody", {
+            name: confirmDelete.name,
+          })}
+          confirmLabel={t("common.delete")}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
     </motion.div>
@@ -205,13 +323,13 @@ function OverviewTab({ t, analytics }) {
   return (
     <>
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <MetricTile label={t("platformAdmin.metricTotalBookings")} value={analytics?.totalBookings ?? "–"} />
+        <MetricTile label={t("platformAdmin.metricTotalUsers")} value={analytics?.registeredUsersCount ?? "–"} />
+        <MetricTile label={t("platformAdmin.metricTotalVenues")} value={analytics?.totalVenuesCount ?? "–"} />
+        <MetricTile label={t("platformAdmin.metricActiveBookings")} value={analytics?.activeBookingsCount ?? "–"} />
         <MetricTile
-          label={t("platformAdmin.metricMonthlyRevenue")}
-          value={analytics ? `${analytics.monthlyRevenueAzn} ${t("common.azn")}` : "–"}
+          label={t("platformAdmin.metricTotalDeposits")}
+          value={analytics ? `${analytics.totalDepositsAzn} ${t("common.azn")}` : "–"}
         />
-        <MetricTile label={t("platformAdmin.metricActiveVenues")} value={analytics?.activeVenuesCount ?? "–"} />
-        <MetricTile label={t("platformAdmin.metricRegisteredUsers")} value={analytics?.registeredUsersCount ?? "–"} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -274,7 +392,7 @@ function OverviewTab({ t, analytics }) {
   );
 }
 
-function VenuesTab({ t, venues, onToggleActive }) {
+function VenuesTab({ t, venues, onToggleActive, onEdit, onDelete }) {
   if (venues.length === 0) {
     return <p className="py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>;
   }
@@ -288,7 +406,8 @@ function VenuesTab({ t, venues, onToggleActive }) {
             <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colOwner")}</th>
             <th className="pb-2 pr-4 font-medium">{t("admin.fieldCity")}</th>
             <th className="pb-2 pr-4 font-medium">{t("admin.metricTotalTables")}</th>
-            <th className="pb-2 font-medium">{t("platformAdmin.colActive")}</th>
+            <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colActive")}</th>
+            <th className="pb-2 font-medium">{t("platformAdmin.colActions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -298,7 +417,7 @@ function VenuesTab({ t, venues, onToggleActive }) {
               <td className="py-2.5 pr-4 text-slate-400">{v.ownerName}</td>
               <td className="py-2.5 pr-4 text-slate-400">{v.city ?? "—"}</td>
               <td className="py-2.5 pr-4 text-slate-400">{v.tableCount}</td>
-              <td className="py-2.5">
+              <td className="py-2.5 pr-4">
                 <button
                   type="button"
                   onClick={() => onToggleActive(v.id, !v.isActive)}
@@ -311,6 +430,16 @@ function VenuesTab({ t, venues, onToggleActive }) {
                   {v.isActive ? t("platformAdmin.active") : t("platformAdmin.inactive")}
                 </button>
               </td>
+              <td className="py-2.5">
+                <div className="flex gap-1.5">
+                  <button className="btn-ghost px-3 py-1 text-xs" onClick={() => onEdit(v)}>
+                    {t("platformAdmin.edit")}
+                  </button>
+                  <button className="btn-danger px-3 py-1 text-xs" onClick={() => onDelete(v)}>
+                    {t("platformAdmin.delete")}
+                  </button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -319,13 +448,29 @@ function VenuesTab({ t, venues, onToggleActive }) {
   );
 }
 
-function UsersTab({ t, users }) {
-  if (users.length === 0) {
-    return <p className="py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>;
-  }
-
+function UsersTab({ t, users, search, onSearchChange, roleFilter, onRoleFilterChange, onToggleActive, onEdit, onDelete }) {
   return (
     <GlassCard className="overflow-x-auto p-5">
+      <div className="mb-4 flex flex-wrap gap-2">
+        <input
+          className="glass-input flex-1 min-w-[220px]"
+          placeholder={t("platformAdmin.searchPlaceholder")}
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+        <select className="glass-input" value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value)}>
+          <option value="">{t("platformAdmin.filterAnyRole")}</option>
+          {ROLE_OPTIONS.map((role) => (
+            <option key={role} value={role}>
+              {t(`platformAdmin.role.${role}`, role)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {users.length === 0 ? (
+        <p className="py-8 text-center text-sm text-slate-400">{t("platformAdmin.noUsersMatch")}</p>
+      ) : (
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-500">
@@ -333,7 +478,9 @@ function UsersTab({ t, users }) {
             <th className="pb-2 pr-4 font-medium">{t("auth.email")}</th>
             <th className="pb-2 pr-4 font-medium">{t("auth.phone")}</th>
             <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colRole")}</th>
-            <th className="pb-2 font-medium">{t("platformAdmin.colJoined")}</th>
+            <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colActive")}</th>
+            <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colJoined")}</th>
+            <th className="pb-2 font-medium">{t("platformAdmin.colActions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -343,11 +490,43 @@ function UsersTab({ t, users }) {
               <td className="py-2.5 pr-4 text-slate-400">{u.email}</td>
               <td className="py-2.5 pr-4 text-slate-400">{u.phone ?? "—"}</td>
               <td className="py-2.5 pr-4 text-slate-400">{t(`platformAdmin.role.${u.role}`, u.role)}</td>
-              <td className="py-2.5 text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+              <td className="py-2.5 pr-4">
+                {u.role === "Admin" ? (
+                  <span className="rounded-full border border-status-free/30 bg-status-free/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-status-free">
+                    {t("platformAdmin.active")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onToggleActive(u.id, !u.isActive)}
+                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition ${
+                      u.isActive
+                        ? "border-status-free/30 bg-status-free/10 text-status-free"
+                        : "border-white/10 bg-white/[0.03] text-slate-400"
+                    }`}
+                  >
+                    {u.isActive ? t("platformAdmin.active") : t("platformAdmin.inactive")}
+                  </button>
+                )}
+              </td>
+              <td className="py-2.5 pr-4 text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+              <td className="py-2.5">
+                <div className="flex gap-1.5">
+                  <button className="btn-ghost px-3 py-1 text-xs" onClick={() => onEdit(u)}>
+                    {t("platformAdmin.edit")}
+                  </button>
+                  {u.role !== "Admin" && (
+                    <button className="btn-danger px-3 py-1 text-xs" onClick={() => onDelete(u)}>
+                      {t("platformAdmin.delete")}
+                    </button>
+                  )}
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      )}
     </GlassCard>
   );
 }

@@ -9,7 +9,12 @@
     "confirm": "Confirm",
     "back": "Back",
     "language": "Language",
-    "azn": "AZN"
+    "azn": "AZN",
+    "search": "Search"
+  },
+  "theme": {
+    "toggleToLight": "Switch to light mode",
+    "toggleToDark": "Switch to dark mode"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -321,6 +326,10 @@
     "metricMonthlyRevenue": "Monthly Revenue (AZN)",
     "metricActiveVenues": "Active Venues",
     "metricRegisteredUsers": "Registered Users",
+    "metricTotalUsers": "Total Users",
+    "metricTotalVenues": "Total Venues",
+    "metricActiveBookings": "Total Active Bookings",
+    "metricTotalDeposits": "Total Platform Deposits (AZN)",
     "chartReservationTrend": "Reservation Trend",
     "chartRevenueTrend": "Revenue Trend",
     "chartStatusBreakdown": "Status Breakdown",
@@ -334,6 +343,23 @@
     "inactive": "Inactive",
     "approve": "Approve",
     "reject": "Reject",
+    "searchPlaceholder": "Search by name, email, phone…",
+    "filterAnyRole": "Any role",
+    "edit": "Edit",
+    "delete": "Delete",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "editUserTitle": "Edit user",
+    "editVenueTitle": "Edit venue",
+    "deleteUserConfirmTitle": "Delete this user?",
+    "deleteUserConfirmBody": "This permanently removes {{name}}'s account. This can't be undone.",
+    "deleteVenueConfirmTitle": "Delete this venue?",
+    "deleteVenueConfirmBody": "This permanently removes {{name}} — its floor plans, tables, and reservations. This can't be undone.",
+    "userUpdated": "User updated",
+    "venueUpdated": "Venue updated",
+    "userDeleted": "User deleted",
+    "venueDeleted": "Venue deleted",
+    "noUsersMatch": "No users match your search.",
     "role": {
       "Customer": "Guest",
       "RestaurantOwner": "Restaurant Owner",

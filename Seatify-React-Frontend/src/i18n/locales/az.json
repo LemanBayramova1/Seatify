@@ -9,7 +9,12 @@
     "confirm": "Təsdiqlə",
     "back": "Geri",
     "language": "Dil",
-    "azn": "AZN"
+    "azn": "AZN",
+    "search": "Axtar"
+  },
+  "theme": {
+    "toggleToLight": "İşıqlı rejimə keç",
+    "toggleToDark": "Qaranlıq rejimə keç"
   },
   "nav": {
     "dashboard": "İdarə paneli",
@@ -320,6 +325,10 @@
     "metricMonthlyRevenue": "Aylıq Gəlir (AZN)",
     "metricActiveVenues": "Aktiv Restoranlar",
     "metricRegisteredUsers": "Qeydiyyatlı İstifadəçilər",
+    "metricTotalUsers": "Ümumi İstifadəçilər",
+    "metricTotalVenues": "Ümumi Restoranlar",
+    "metricActiveBookings": "Ümumi Aktiv Bronlar",
+    "metricTotalDeposits": "Ümumi Platforma Depoziti (AZN)",
     "chartReservationTrend": "Bron Tendensiyası",
     "chartRevenueTrend": "Gəlir Tendensiyası",
     "chartStatusBreakdown": "Status Bölgüsü",
@@ -333,6 +342,23 @@
     "inactive": "Deaktiv",
     "approve": "Təsdiqlə",
     "reject": "Ləğv et",
+    "searchPlaceholder": "Ad, e-poçt və ya telefona görə axtar…",
+    "filterAnyRole": "İstənilən rol",
+    "edit": "Redaktə et",
+    "delete": "Sil",
+    "activate": "Aktivləşdir",
+    "deactivate": "Deaktiv et",
+    "editUserTitle": "İstifadəçini redaktə et",
+    "editVenueTitle": "Restoranı redaktə et",
+    "deleteUserConfirmTitle": "Bu istifadəçini silmək istəyirsiniz?",
+    "deleteUserConfirmBody": "Bu, {{name}} adlı istifadəçinin hesabını həmişəlik siləcək. Bu əməliyyat geri qaytarıla bilməz.",
+    "deleteVenueConfirmTitle": "Bu restoranı silmək istəyirsiniz?",
+    "deleteVenueConfirmBody": "Bu, {{name}} restoranını — zal planlarını, masalarını və bronlarını — həmişəlik siləcək. Bu əməliyyat geri qaytarıla bilməz.",
+    "userUpdated": "İstifadəçi yeniləndi",
+    "venueUpdated": "Restoran yeniləndi",
+    "userDeleted": "İstifadəçi silindi",
+    "venueDeleted": "Restoran silindi",
+    "noUsersMatch": "Axtarışınıza uyğun istifadəçi tapılmadı.",
     "role": {
       "Customer": "Qonaq",
       "RestaurantOwner": "Restoran Sahibi",

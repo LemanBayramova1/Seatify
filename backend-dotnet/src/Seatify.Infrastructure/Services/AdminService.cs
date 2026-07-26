@@ -35,6 +35,11 @@ public class AdminService : IAdminService
             .Select(r => r.DepositFee)
             .ToListAsync();
 
+        var allPaidFees = await _db.Reservations
+            .Where(r => r.DepositPaid)
+            .Select(r => r.DepositFee)
+            .ToListAsync();
+
         var trendStart = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-13);
         var recentReservations = await _db.Reservations
             .Where(r => r.ReservationDate >= trendStart)
@@ -61,6 +66,9 @@ public class AdminService : IAdminService
             MonthlyRevenueAzn = monthlyPaidFees.Sum(),
             ActiveVenuesCount = await _db.Venues.CountAsync(v => v.IsActive),
             RegisteredUsersCount = await _db.Users.CountAsync(),
+            TotalVenuesCount = await _db.Venues.CountAsync(),
+            ActiveBookingsCount = await _db.Reservations.CountAsync(r => r.Status == ReservationStatus.Held || r.Status == ReservationStatus.Confirmed),
+            TotalDepositsAzn = allPaidFees.Sum(),
             ReservationTrend = reservationTrend,
             RevenueTrend = revenueTrend,
             StatusBreakdown = new StatusBreakdownDto
@@ -101,20 +109,105 @@ public class AdminService : IAdminService
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>Permanently removes a venue and everything under it: its floor plans, tables,
+    /// reviews (cascade-configured), and reservations (deleted explicitly first, since
+    /// Table→Reservation is a Restrict relationship that would otherwise block the delete).</summary>
+    public async Task DeleteVenueAsync(Guid venueId)
+    {
+        var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == venueId)
+            ?? throw new NotFoundException(nameof(Venue), venueId);
+
+        var tableIds = await _db.Tables.Where(t => t.FloorPlan.VenueId == venueId).Select(t => t.Id).ToListAsync();
+        var reservations = await _db.Reservations.Where(r => tableIds.Contains(r.TableId)).ToListAsync();
+        _db.Reservations.RemoveRange(reservations);
+
+        _db.Venues.Remove(venue);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<List<AdminUserDto>> GetUsersAsync()
     {
         var users = await _db.Users.OrderByDescending(u => u.CreatedAt).ToListAsync();
 
-        return users.Select(u => new AdminUserDto
-        {
-            Id = u.Id,
-            Name = u.Name,
-            Email = u.Email,
-            Phone = u.Phone,
-            Role = u.Role.ToString(),
-            CreatedAt = u.CreatedAt
-        }).ToList();
+        return users.Select(ToUserDto).ToList();
     }
+
+    public async Task<AdminUserDto> UpdateUserAsync(Guid userId, UpdateUserRequestDto request)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new NotFoundException(nameof(User), userId);
+
+        if (!Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var role))
+        {
+            throw new Application.Common.Exceptions.ValidationException("Role must be 'Customer', 'RestaurantOwner', or 'Admin'.");
+        }
+
+        var email = request.Email.Trim().ToLowerInvariant();
+        var emailTaken = await _db.Users.AnyAsync(u => u.Id != userId && u.Email == email);
+        if (emailTaken)
+        {
+            throw new ConflictException($"An account with email '{email}' already exists.");
+        }
+
+        user.Name = request.Name.Trim();
+        user.Email = email;
+        user.Phone = request.Phone?.Trim();
+        user.Role = role;
+
+        await _db.SaveChangesAsync();
+
+        return ToUserDto(user);
+    }
+
+    public async Task ToggleUserActiveAsync(Guid userId, bool isActive)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new NotFoundException(nameof(User), userId);
+
+        if (!isActive && user.Role == UserRole.Admin)
+        {
+            throw new ConflictException("Admin accounts cannot be deactivated.");
+        }
+
+        user.IsActive = isActive;
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Hard-deletes a user. Refuses to delete Admin accounts, and refuses to delete
+    /// anyone with existing venues, reservations, or reviews — those relationships are Restrict
+    /// at the DB level, and deactivating is the safe alternative for an account with history.</summary>
+    public async Task DeleteUserAsync(Guid userId)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
+            ?? throw new NotFoundException(nameof(User), userId);
+
+        if (user.Role == UserRole.Admin)
+        {
+            throw new ConflictException("Admin accounts cannot be deleted.");
+        }
+
+        var hasVenues = await _db.Venues.AnyAsync(v => v.OwnerId == userId);
+        var hasReservations = await _db.Reservations.AnyAsync(r => r.UserId == userId);
+        var hasReviews = await _db.Reviews.AnyAsync(r => r.UserId == userId);
+        if (hasVenues || hasReservations || hasReviews)
+        {
+            throw new ConflictException("This user has existing venues, reservations, or reviews — deactivate the account instead of deleting it.");
+        }
+
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+    }
+
+    private static AdminUserDto ToUserDto(User u) => new()
+    {
+        Id = u.Id,
+        Name = u.Name,
+        Email = u.Email,
+        Phone = u.Phone,
+        Role = u.Role.ToString(),
+        IsActive = u.IsActive,
+        CreatedAt = u.CreatedAt
+    };
 
     public async Task<List<ReservationDto>> GetReservationsAsync(DateOnly? date, string? status)
     {

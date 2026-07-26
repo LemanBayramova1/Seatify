@@ -11,6 +11,10 @@ public class User : BaseEntity
     public UserRole Role { get; set; } = UserRole.Customer;
     public string? Phone { get; set; }
 
+    /// <summary>Platform-admin on/off switch — a deactivated account is blocked from
+    /// logging in but keeps all its data (distinct from Venue.IsActive).</summary>
+    public bool IsActive { get; set; } = true;
+
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
     public ICollection<Venue> OwnedVenues { get; set; } = new List<Venue>();
 }

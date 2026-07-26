@@ -26,6 +26,17 @@ public class AdminAnalyticsDto
     public decimal MonthlyRevenueAzn { get; set; }
     public int ActiveVenuesCount { get; set; }
     public int RegisteredUsersCount { get; set; }
+
+    /// <summary>Every venue on the platform, active or not — distinct from ActiveVenuesCount.</summary>
+    public int TotalVenuesCount { get; set; }
+
+    /// <summary>Reservations currently Held or Confirmed — "in flight" bookings, as opposed to
+    /// TotalBookings' all-time Confirmed count.</summary>
+    public int ActiveBookingsCount { get; set; }
+
+    /// <summary>All-time sum of paid deposit fees across every venue, not just this month.</summary>
+    public decimal TotalDepositsAzn { get; set; }
+
     public List<DailyCountDto> ReservationTrend { get; set; } = new();
     public List<DailyRevenueDto> RevenueTrend { get; set; } = new();
     public StatusBreakdownDto StatusBreakdown { get; set; } = new();
