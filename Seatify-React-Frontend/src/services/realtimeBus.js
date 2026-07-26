@@ -57,6 +57,8 @@ function getConnection() {
         tableId: message.tableId,
         status: API_STATUS_TO_STATUS[message.status] ?? message.status,
         holdExpiresAt: message.holdExpiresAt,
+        date: message.reservationDate,
+        timeSlot: message.timeSlot,
       });
     });
 

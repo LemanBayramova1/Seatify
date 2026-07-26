@@ -22,7 +22,9 @@ public class ReservationConfiguration : IEntityTypeConfiguration<Reservation>
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(r => new { r.TableId, r.ReservationDate });
+        // Covers the per-slot availability/conflict query (TableId + ReservationDate + TimeSlot +
+        // Status) in ReservationService.HoldAsync and FloorPlanService.ApplySlotAvailabilityAsync.
+        builder.HasIndex(r => new { r.TableId, r.ReservationDate, r.TimeSlot, r.Status });
         builder.HasIndex(r => r.UserId);
         builder.HasIndex(r => r.Status);
     }

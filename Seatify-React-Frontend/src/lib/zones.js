@@ -30,6 +30,24 @@ export const TABLE_ELEMENT_TYPES = [
   ELEMENT_TYPES.RECT_TABLE,
 ];
 
+// Render/z-order for the canvas: lower first (drawn behind). Walls sit at the very back,
+// tables always draw in front of every architectural element.
+const Z_ORDER = {
+  [ELEMENT_TYPES.WALL]: 0,
+  [ELEMENT_TYPES.ZONE_LABEL]: 1,
+  [ELEMENT_TYPES.WINDOW]: 1,
+  [ELEMENT_TYPES.DOOR]: 1,
+  [ELEMENT_TYPES.STAGE]: 2,
+  [ELEMENT_TYPES.BAR_KITCHEN]: 2,
+  [ELEMENT_TYPES.ROUND_TABLE]: 3,
+  [ELEMENT_TYPES.SQUARE_TABLE]: 3,
+  [ELEMENT_TYPES.RECT_TABLE]: 3,
+};
+
+export function sortByZOrder(elements) {
+  return elements.map((el, i) => [el, i]).sort(([a, ai], [b, bi]) => (Z_ORDER[a.type] ?? 1) - (Z_ORDER[b.type] ?? 1) || ai - bi).map(([el]) => el);
+}
+
 export const STATUS = {
   FREE: "FREE",
   HELD: "HELD",

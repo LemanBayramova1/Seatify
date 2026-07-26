@@ -19,7 +19,7 @@ public class VenueService : IVenueService
 
     public async Task<List<VenueDto>> GetAllAsync()
     {
-        var venues = await _db.Venues.OrderBy(v => v.Name).ToListAsync();
+        var venues = await _db.Venues.Where(v => v.IsActive).OrderBy(v => v.Name).ToListAsync();
         return venues.Select(ToDto).ToList();
     }
 

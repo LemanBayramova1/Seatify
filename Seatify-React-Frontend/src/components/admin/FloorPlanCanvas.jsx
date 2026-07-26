@@ -3,6 +3,7 @@ import { Layer, Stage } from "react-konva";
 import { useTranslation } from "react-i18next";
 import { useEditorStore } from "../../store/useEditorStore";
 import { TableElement } from "./TableElement";
+import { sortByZOrder } from "../../lib/zones";
 
 const STAGE_WIDTH = 860;
 const STAGE_HEIGHT = 560;
@@ -69,7 +70,7 @@ export function FloorPlanCanvas() {
         }}
       >
         <Layer>
-          {elements.map((element) => (
+          {sortByZOrder(elements).map((element) => (
             <TableElement
               key={element.id}
               element={element}

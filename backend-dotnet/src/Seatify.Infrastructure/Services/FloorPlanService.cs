@@ -130,7 +130,7 @@ public class FloorPlanService : IFloorPlanService
         return dto;
     }
 
-    public async Task<List<FloorPlanDto>> GetAllByVenueIdAsync(Guid venueId)
+    public async Task<List<FloorPlanDto>> GetAllByVenueIdAsync(Guid venueId, DateOnly? date = null, string? timeSlot = null)
     {
         var venueExists = await _db.Venues.AnyAsync(v => v.Id == venueId);
         if (!venueExists)
@@ -145,7 +145,21 @@ public class FloorPlanService : IFloorPlanService
             .ToListAsync();
 
         var dtos = floorPlans.Select(ToDto).ToList();
-        await AttachActiveHoldsAsync(dtos.SelectMany(d => d.Tables));
+
+        // Availability is per date+time-slot: when the caller (the customer booking flow)
+        // specifies one, compute each table's Status fresh from Reservations for that exact
+        // slot instead of the stale global `Table.Status` column — see ReservationService's
+        // remarks on why that column is no longer trustworthy across dates. The builder's own
+        // call (no date/timeSlot) keeps the old, date-agnostic behavior.
+        if (date.HasValue && !string.IsNullOrWhiteSpace(timeSlot))
+        {
+            await ApplySlotAvailabilityAsync(dtos.SelectMany(d => d.Tables), date.Value, timeSlot);
+        }
+        else
+        {
+            await AttachActiveHoldsAsync(dtos.SelectMany(d => d.Tables));
+        }
+
         return dtos;
     }
 
@@ -299,6 +313,41 @@ public class FloorPlanService : IFloorPlanService
             if (holdsByTable.TryGetValue(table.Id, out var expiresAt))
             {
                 table.HoldExpiresAt = expiresAt;
+            }
+        }
+    }
+
+    private async Task ApplySlotAvailabilityAsync(IEnumerable<TableDto> tables, DateOnly date, string timeSlot)
+    {
+        var tableList = tables.ToList();
+        var tableIds = tableList.Select(t => t.Id).ToList();
+        var now = DateTime.UtcNow;
+
+        var slotReservations = await _db.Reservations
+            .Where(r => tableIds.Contains(r.TableId) && r.ReservationDate == date && r.TimeSlot == timeSlot
+                && (r.Status == ReservationStatus.Confirmed || (r.Status == ReservationStatus.Held && r.HoldExpiresAt > now)))
+            .Select(r => new { r.TableId, r.Status, r.HoldExpiresAt })
+            .ToListAsync();
+
+        // Group defensively in case a table somehow has more than one active row for the same
+        // slot — Confirmed always wins over Held for display purposes.
+        var byTable = slotReservations
+            .GroupBy(r => r.TableId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(r => r.Status == ReservationStatus.Confirmed ? 0 : 1).First());
+
+        foreach (var table in tableList)
+        {
+            if (byTable.TryGetValue(table.Id, out var reservation))
+            {
+                table.Status = reservation.Status == ReservationStatus.Confirmed
+                    ? TableStatus.Booked.ToString()
+                    : TableStatus.Held.ToString();
+                table.HoldExpiresAt = reservation.Status == ReservationStatus.Held ? reservation.HoldExpiresAt : null;
+            }
+            else
+            {
+                table.Status = TableStatus.Available.ToString();
+                table.HoldExpiresAt = null;
             }
         }
     }

@@ -13,8 +13,10 @@ public interface IFloorPlanService
     /// </summary>
     Task<FloorPlanDto> SaveAsync(Guid venueId, Guid callerId, bool callerIsAdmin, SaveFloorPlanRequestDto request);
 
-    /// <summary>Returns every floor plan for the venue (ordered by level), each with its active tables.</summary>
-    Task<List<FloorPlanDto>> GetAllByVenueIdAsync(Guid venueId);
+    /// <summary>Returns every floor plan for the venue (ordered by level), each with its active tables.
+    /// When `date`/`timeSlot` are given, each table's Status reflects availability for that exact
+    /// slot (computed fresh from Reservations) instead of the date-agnostic stored column.</summary>
+    Task<List<FloorPlanDto>> GetAllByVenueIdAsync(Guid venueId, DateOnly? date = null, string? timeSlot = null);
 
     /// <summary>
     /// Replaces a venue's entire multi-floor layout — floors and tables — in a single transaction.

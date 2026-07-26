@@ -12,7 +12,10 @@ export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== "false";
 export const ROLES = {
   CUSTOMER: "Customer",
   RESTAURANT_OWNER: "RestaurantOwner",
+  ADMIN: "Admin",
 };
+
+const ADMIN_EMAIL = "admin@seatify.dev";
 
 // Mirrors AuthService.TryNormalizeRole on the C# side — accepts loose variants
 // ("Restaurant Owner", "Owner", "restaurant_owner", ...) so any UI copy or manual
@@ -106,8 +109,11 @@ export const useAuthStore = create((set) => ({
 
     if (USE_MOCKS) {
       await wait(400 + Math.random() * 300);
-      const role = lookupMockRole(email);
-      const user = { name: DEMO_NAME, email: email.trim(), role, initials: initials(DEMO_NAME) };
+      // Admin accounts are never self-registered (mirrors the real API blocking it too) — the
+      // one seeded demo admin is the only way in, so mock mode special-cases its email.
+      const isAdmin = email.trim().toLowerCase() === ADMIN_EMAIL;
+      const role = isAdmin ? ROLES.ADMIN : lookupMockRole(email);
+      const user = { name: isAdmin ? "Demo Admin" : DEMO_NAME, email: email.trim(), role, initials: initials(isAdmin ? "Demo Admin" : DEMO_NAME) };
       persistUser(user);
       set({ user, isSubmitting: false });
       return user;

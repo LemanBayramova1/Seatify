@@ -18,12 +18,14 @@ public class FloorPlansController : ApiControllerBase
         _floorPlanService = floorPlanService;
     }
 
-    /// <summary>All floor plans for the restaurant, ordered by level, each with its active tables.</summary>
+    /// <summary>All floor plans for the restaurant, ordered by level, each with its active tables.
+    /// Pass `date`/`timeSlot` (used by the customer booking flow) to get each table's real
+    /// availability for that exact slot instead of the date-agnostic default.</summary>
     [HttpGet("{restaurantId:guid}")]
     [AllowAnonymous]
-    public async Task<ActionResult<List<FloorPlanDto>>> GetByRestaurantId(Guid restaurantId)
+    public async Task<ActionResult<List<FloorPlanDto>>> GetByRestaurantId(Guid restaurantId, [FromQuery] DateOnly? date, [FromQuery] string? timeSlot)
     {
-        return Ok(await _floorPlanService.GetAllByVenueIdAsync(restaurantId));
+        return Ok(await _floorPlanService.GetAllByVenueIdAsync(restaurantId, date, timeSlot));
     }
 
     /// <summary>Creates or fully replaces a restaurant's entire multi-floor layout in one transaction.</summary>

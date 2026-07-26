@@ -339,6 +339,177 @@ export async function getVenueReservations(venueId, { date, status } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// Platform Admin (`/platform-admin`, UserRole.Admin only) — spans every venue/user, unlike
+// the owner-scoped getVenueDashboard/getVenueReservations above. Mock branches are a
+// best-effort approximation built from the same localStorage stores the rest of this file
+// already uses (there's no separate "mock backend" to query cross-venue).
+// ---------------------------------------------------------------------------
+const MOCK_VENUE_ACTIVE_KEY = "seatify.mock.venueActive.v1";
+const MOCK_USER_ROLES_KEY = "seatify.mock.userRoles.v1";
+
+function mockVenueActiveMap() {
+  return loadJSON(MOCK_VENUE_ACTIVE_KEY, {});
+}
+
+function dailyBuckets(days) {
+  const buckets = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    buckets.push(d.toISOString().slice(0, 10));
+  }
+  return buckets;
+}
+
+/** Cross-venue KPI cards + trend/status-breakdown charts for the platform admin dashboard. */
+export async function getAdminAnalytics() {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const bookings = readBookings();
+    const monthPrefix = todayIso().slice(0, 7);
+    const roles = loadJSON(MOCK_USER_ROLES_KEY, {});
+    const days = dailyBuckets(14);
+
+    return {
+      totalBookings: bookings.length,
+      monthlyRevenueAzn: bookings.filter((b) => b.date?.startsWith(monthPrefix)).reduce((sum, b) => sum + (b.minDeposit ?? 0), 0),
+      activeVenuesCount: RESTAURANTS.length,
+      registeredUsersCount: Object.keys(roles).length + 3,
+      reservationTrend: days.map((date) => ({ date, count: bookings.filter((b) => b.date === date).length })),
+      revenueTrend: days.map((date) => ({
+        date,
+        amount: bookings.filter((b) => b.date === date).reduce((sum, b) => sum + (b.minDeposit ?? 0), 0),
+      })),
+      statusBreakdown: { confirmed: bookings.length, held: 0, cancelled: 0, expired: 0 },
+    };
+  }
+  const { data } = await http.get("/admin/analytics");
+  return {
+    totalBookings: data.totalBookings,
+    monthlyRevenueAzn: data.monthlyRevenueAzn,
+    activeVenuesCount: data.activeVenuesCount,
+    registeredUsersCount: data.registeredUsersCount,
+    reservationTrend: data.reservationTrend.map((d) => ({ date: d.date, count: d.count })),
+    revenueTrend: data.revenueTrend.map((d) => ({ date: d.date, amount: d.amount })),
+    statusBreakdown: {
+      confirmed: data.statusBreakdown.confirmed,
+      held: data.statusBreakdown.held,
+      cancelled: data.statusBreakdown.cancelled,
+      expired: data.statusBreakdown.expired,
+    },
+  };
+}
+
+/** Every venue on the platform, with owner name + table count + active toggle. */
+export async function getAdminVenues() {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const activeMap = mockVenueActiveMap();
+    return RESTAURANTS.map((r) => ({
+      id: r.id,
+      name: r.name,
+      ownerName: "Demo Owner",
+      city: "Bakı",
+      tableCount: r.floorPlanSeed?.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).length ?? 0,
+      isActive: activeMap[r.id] ?? true,
+    }));
+  }
+  const { data } = await http.get("/admin/venues");
+  return data;
+}
+
+export async function toggleVenueActive(venueId, isActive) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const activeMap = mockVenueActiveMap();
+    activeMap[venueId] = isActive;
+    saveJSON(MOCK_VENUE_ACTIVE_KEY, activeMap);
+    return { ok: true };
+  }
+  await http.patch(`/admin/venues/${venueId}/active`, { isActive });
+  return { ok: true };
+}
+
+/** Every registered user on the platform (guests + owners). */
+export async function getAdminUsers() {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const roles = loadJSON(MOCK_USER_ROLES_KEY, {});
+    const seeded = [
+      { id: "seed-owner", name: "Demo Owner", email: "owner@seatify.dev", phone: null, role: "RestaurantOwner", createdAt: Date.now() },
+      { id: "seed-customer", name: "Demo Customer", email: "customer@seatify.dev", phone: null, role: "Customer", createdAt: Date.now() },
+    ];
+    const registered = Object.entries(roles).map(([email, role]) => ({
+      id: email,
+      name: email.split("@")[0],
+      email,
+      phone: null,
+      role,
+      createdAt: Date.now(),
+    }));
+    return [...seeded, ...registered];
+  }
+  const { data } = await http.get("/admin/users");
+  return data;
+}
+
+/** Every reservation on the platform, optionally filtered by date/status. */
+export async function getAdminReservations({ date, status } = {}) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    let bookings = readBookings();
+    if (date) bookings = bookings.filter((b) => b.date === date);
+    if (status) bookings = bookings.filter((b) => pascalStatus(b.status) === status);
+    return bookings.map((b) => ({
+      id: b.id,
+      tableId: b.tableId,
+      tableLabel: b.tableLabel,
+      venueId: b.venueId,
+      venueName: b.restaurantName,
+      reservationDate: b.date,
+      timeSlot: b.timeSlot,
+      partySize: b.guests,
+      status: pascalStatus(b.status),
+      depositFee: b.minDeposit,
+      depositPaid: b.status === "CONFIRMED",
+      createdAt: b.createdAt,
+    }));
+  }
+  const { data } = await http.get("/admin/reservations", { params: { date, status } });
+  return data;
+}
+
+export async function approveReservation(reservationId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    return { ok: true };
+  }
+  await http.post(`/admin/reservations/${reservationId}/approve`);
+  return { ok: true };
+}
+
+export async function rejectReservation(reservationId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const bookings = readBookings();
+    const booking = bookings.find((b) => b.id === reservationId);
+    if (booking) {
+      const key = slotKey(booking.tableId, booking.date, booking.timeSlot);
+      const reservations = readReservations(booking.venueId);
+      if (reservations[key]?.reservationId === booking.reservationId) {
+        delete reservations[key];
+        writeReservations(booking.venueId, reservations);
+        publish({ type: "TableStatusChanged", venueId: booking.venueId, tableId: booking.tableId, date: booking.date, timeSlot: booking.timeSlot, status: STATUS.FREE });
+      }
+    }
+    writeBookings(bookings.filter((b) => b.id !== reservationId));
+    return { ok: true };
+  }
+  await http.post(`/admin/reservations/${reservationId}/reject`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Floor plan (Admin builder)
 // ---------------------------------------------------------------------------
 
@@ -354,13 +525,17 @@ function floorPlanFromApi(fp) {
   };
 }
 
-/** Every floor plan (zone/room) for a venue, ordered by level, each with its own tables. */
-export async function getFloorPlans(venueId) {
+/**
+ * Every floor plan (zone/room) for a venue, ordered by level, each with its own tables.
+ * Pass `date`/`timeSlot` (the customer booking flow) to get each table's real availability
+ * for that exact slot instead of the date-agnostic default the builder uses.
+ */
+export async function getFloorPlans(venueId, { date, timeSlot } = {}) {
   if (USE_MOCKS) {
     await wait(jitter());
     return loadJSON(floorPlansKey(venueId), null) ?? seedFloorPlans(venueId);
   }
-  const { data } = await http.get(`/floorplans/${venueId}`);
+  const { data } = await http.get(`/floorplans/${venueId}`, { params: { date, timeSlot } });
   return data.map(floorPlanFromApi);
 }
 
@@ -412,12 +587,11 @@ export async function getAvailability({ venueId, date, timeSlot, partySize, zone
     return { tables };
   }
 
-  // The API models one live status per table (Available/Held/Booked), not per-slot
-  // availability — there's no GET /tables/availability endpoint. Reuse the floor plans
-  // fetch (which already carries each table's current status), flattened across every
-  // zone/room, and apply the same partySize/zone filters client-side; `date`/`timeSlot`
-  // only travel along at hold time, for the reservation's own record.
-  const plans = await getFloorPlans(venueId);
+  // There's no dedicated GET /tables/availability endpoint — reuse the floor plans fetch,
+  // passing date/timeSlot through so the backend computes each table's Status for that exact
+  // slot (see FloorPlanService.ApplySlotAvailabilityAsync), flattened across every zone/room,
+  // then apply the same partySize/zone filters client-side.
+  const plans = await getFloorPlans(venueId, { date, timeSlot });
   const tables = plans
     .flatMap((fp) => fp.elements)
     .filter((el) => (partySize ? el.capacity >= partySize : true))

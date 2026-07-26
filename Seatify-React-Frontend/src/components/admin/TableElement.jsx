@@ -5,6 +5,11 @@ import { ELEMENT_TYPES, SELECTION_COLOR, SELECTION_GLOW, STATUS, STATUS_COLOR, S
 import { getChairPositions } from "../../lib/chairLayout";
 
 const TABLE_TYPES = new Set([ELEMENT_TYPES.ROUND_TABLE, ELEMENT_TYPES.SQUARE_TABLE, ELEMENT_TYPES.RECT_TABLE]);
+const GRID_SNAP = 10;
+
+function snap(value, step = GRID_SNAP) {
+  return Math.round(value / step) * step;
+}
 
 /**
  * Renders one floor-plan element on the Konva canvas. Shared between the
@@ -93,7 +98,7 @@ export function TableElement({
         draggable: true,
         onClick: onSelect,
         onTap: onSelect,
-        onDragEnd: (e) => onChange?.({ x: e.target.x(), y: e.target.y() }),
+        onDragEnd: (e) => onChange?.({ x: snap(e.target.x()), y: snap(e.target.y()) }),
         onTransformEnd: () => {
           const node = shapeRef.current;
           if (!node) return;
@@ -102,11 +107,11 @@ export function TableElement({
           node.scaleX(1);
           node.scaleY(1);
           onChange?.({
-            x: node.x(),
-            y: node.y(),
+            x: snap(node.x()),
+            y: snap(node.y()),
             rotation: node.rotation(),
-            width: Math.max(20, element.width * scaleX),
-            height: Math.max(20, element.height * scaleY),
+            width: snap(Math.max(20, element.width * scaleX)),
+            height: snap(Math.max(20, element.height * scaleY)),
           });
         },
       }
@@ -170,22 +175,38 @@ export function TableElement({
       )}
 
       {element.type === ELEMENT_TYPES.WINDOW && (
-        <Line
-          points={[element.x - element.width / 2, element.y, element.x + element.width / 2, element.y]}
-          stroke="#38bdf8"
-          strokeWidth={6}
-          dash={[10, 6]}
-          lineCap="round"
-          listening={false}
+        <Rect
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2}
+          offsetY={element.height / 2}
+          width={element.width}
+          height={element.height}
+          rotation={element.rotation}
+          fill="#0c4a6e"
+          stroke={isEditor && isSelected ? "#ffffff" : "#38bdf8"}
+          strokeWidth={isEditor && isSelected ? 3 : 2}
+          dash={[8, 5]}
+          cornerRadius={2}
+          {...interactionProps}
         />
       )}
       {element.type === ELEMENT_TYPES.DOOR && (
-        <Line
-          points={[element.x - element.width / 2, element.y, element.x + element.width / 2, element.y]}
-          stroke="#d97706"
-          strokeWidth={8}
-          lineCap="round"
-          listening={false}
+        <Rect
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2}
+          offsetY={element.height / 2}
+          width={element.width}
+          height={element.height}
+          rotation={element.rotation}
+          fill="#92400e"
+          stroke={isEditor && isSelected ? "#ffffff" : "#d97706"}
+          strokeWidth={isEditor && isSelected ? 3 : 2}
+          cornerRadius={2}
+          {...interactionProps}
         />
       )}
       {element.type === ELEMENT_TYPES.WALL && (
@@ -322,21 +343,26 @@ export function TableElement({
         />
       )}
 
-      {(isTable || element.type === ELEMENT_TYPES.STAGE || element.type === ELEMENT_TYPES.BAR_KITCHEN) && (
-        <Text
-          x={element.x - element.width / 2}
-          y={element.y - 7}
-          width={element.width}
-          align="center"
-          text={isTable ? `${element.label}${element.capacity ? ` · ${element.capacity}p` : ""}` : element.label}
-          fontSize={12}
-          fontStyle="700"
-          fill={isTable && !isEditor ? "#f8fafc" : "#0b0e16"}
-          shadowColor={isTable && !isEditor ? "rgba(0,0,0,0.6)" : undefined}
-          shadowBlur={isTable && !isEditor ? 3 : 0}
-          listening={false}
-        />
-      )}
+      {(() => {
+        const decorTypes = new Set([ELEMENT_TYPES.STAGE, ELEMENT_TYPES.BAR_KITCHEN, ELEMENT_TYPES.WALL, ELEMENT_TYPES.WINDOW, ELEMENT_TYPES.DOOR]);
+        if (!isTable && !decorTypes.has(element.type)) return null;
+        const isLightDecor = element.type === ELEMENT_TYPES.STAGE || element.type === ELEMENT_TYPES.BAR_KITCHEN;
+        return (
+          <Text
+            x={element.x - element.width / 2}
+            y={element.y - 7}
+            width={element.width}
+            align="center"
+            text={isTable ? `${element.label}${element.capacity ? ` · ${element.capacity}p` : ""}` : element.label}
+            fontSize={12}
+            fontStyle="700"
+            fill={isTable && !isEditor ? "#f8fafc" : isLightDecor ? "#0b0e16" : "#e2e8f0"}
+            shadowColor={isTable && !isEditor ? "rgba(0,0,0,0.6)" : undefined}
+            shadowBlur={isTable && !isEditor ? 3 : 0}
+            listening={false}
+          />
+        );
+      })()}
       {isEditor && isSelected && <Transformer ref={transformerRef} rotateEnabled keepRatio={false} anchorCornerRadius={4} />}
     </Group>
   );

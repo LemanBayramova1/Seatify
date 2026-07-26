@@ -10,6 +10,20 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
+        // Seeded independently of the venues check below — an existing dev database (already
+        // full of venues from earlier runs) would otherwise never get the demo Admin account.
+        if (!await db.Users.AnyAsync(u => u.Role == UserRole.Admin))
+        {
+            db.Users.Add(new User
+            {
+                Name = "Demo Admin",
+                Email = "admin@seatify.dev",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Passw0rd!"),
+                Role = UserRole.Admin
+            });
+            await db.SaveChangesAsync();
+        }
+
         if (await db.Venues.AnyAsync())
         {
             return;

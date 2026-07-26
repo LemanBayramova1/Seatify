@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { cancelHold, getAvailability, holdTable } from "../../services/apiService";
 import { joinVenue, leaveVenue, subscribe } from "../../services/realtimeBus";
-import { todayIso, TIME_SLOTS } from "../../lib/timeSlots";
+import { firstAvailableSlot, isSlotPast, todayIso, TIME_SLOTS } from "../../lib/timeSlots";
 import { TableElement } from "../admin/TableElement";
 import { Tooltip } from "../shared/Tooltip";
 import { FilterBar } from "./FilterBar";
@@ -63,6 +63,16 @@ export function BookingMap({ venueId, restaurant }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueId, filters]);
 
+  // If the selected date changes (or ticks past midnight) and the currently-picked slot has
+  // already started for that date, bump to the next slot that hasn't — never leave a stale,
+  // unbookable slot selected.
+  useEffect(() => {
+    if (isSlotPast(filters.date, filters.timeSlot)) {
+      setFilters((f) => ({ ...f, timeSlot: firstAvailableSlot(f.date) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.date]);
+
   useEffect(() => {
     joinVenue(venueId);
     return () => leaveVenue(venueId);
@@ -72,9 +82,8 @@ export function BookingMap({ venueId, restaurant }) {
     return subscribe((event) => {
       if (event.type !== "TableStatusChanged") return;
       if (event.venueId !== venueId) return;
-      // Mock-mode events carry date/timeSlot (per-slot simulation); real hub events don't
-      // (the API models one live status per table, regardless of date/time — see the
-      // backend README) so only filter on them when they're actually present.
+      // Every broadcast carries the date/timeSlot it applies to — availability is per-slot,
+      // so ignore anything that isn't for the slot currently being viewed.
       if (event.date !== undefined && (event.date !== filters.date || event.timeSlot !== filters.timeSlot)) return;
       setOverrides((prev) => ({ ...prev, [event.tableId]: event.status }));
     });

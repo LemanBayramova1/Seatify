@@ -19,6 +19,7 @@ public class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.Property(v => v.BusinessPhone).HasMaxLength(30);
         builder.Property(v => v.CuisineTypes).HasMaxLength(500);
         builder.Property(v => v.GalleryImageUrls).HasMaxLength(2000);
+        builder.Property(v => v.IsActive).HasDefaultValue(true);
 
         builder.HasMany(v => v.FloorPlans)
             .WithOne(f => f.Venue)

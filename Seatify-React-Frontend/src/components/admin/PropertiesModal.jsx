@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { ELEMENT_TYPES, ZONES } from "../../lib/zones";
@@ -16,10 +17,16 @@ export function PropertiesModal() {
   const updateElement = useEditorStore((s) => s.updateElement);
   const removeElement = useEditorStore((s) => s.removeElement);
   const selectElement = useEditorStore((s) => s.selectElement);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const elements = floorPlans.find((fp) => fp.id === activeFloorPlanId)?.elements ?? [];
   const element = elements.find((el) => el.id === selectedId);
   const isTable = element && TABLE_TYPES.has(element.type);
+
+  function handleDelete() {
+    removeElement(element.id);
+    setConfirmDelete(false);
+  }
 
   return (
     <AnimatePresence>
@@ -69,9 +76,50 @@ export function PropertiesModal() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label-text">{t("builder.width")}</label>
+                  <input
+                    type="range"
+                    min={12}
+                    max={400}
+                    step={2}
+                    className="w-full accent-brand-500"
+                    value={element.width}
+                    onChange={(e) => updateElement(element.id, { width: Number(e.target.value) }, { silent: true })}
+                  />
+                  <input
+                    type="number"
+                    min={12}
+                    className="glass-input w-full"
+                    value={Math.round(element.width)}
+                    onChange={(e) => updateElement(element.id, { width: Number(e.target.value) }, { silent: true })}
+                  />
+                </div>
+                <div>
+                  <label className="label-text">{t("builder.height")}</label>
+                  <input
+                    type="range"
+                    min={12}
+                    max={400}
+                    step={2}
+                    className="w-full accent-brand-500"
+                    value={element.height}
+                    onChange={(e) => updateElement(element.id, { height: Number(e.target.value) }, { silent: true })}
+                  />
+                  <input
+                    type="number"
+                    min={12}
+                    className="glass-input w-full"
+                    value={Math.round(element.height)}
+                    onChange={(e) => updateElement(element.id, { height: Number(e.target.value) }, { silent: true })}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="label-text">{t("builder.rotation")}</label>
-                <div className="flex gap-1.5">
+                <div className="mb-2 flex gap-1.5">
                   {ROTATION_PRESETS.map((deg) => (
                     <button
                       key={deg}
@@ -87,6 +135,15 @@ export function PropertiesModal() {
                     </button>
                   ))}
                 </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={359}
+                  step={1}
+                  className="w-full accent-brand-500"
+                  value={Math.round(element.rotation) % 360}
+                  onChange={(e) => updateElement(element.id, { rotation: Number(e.target.value) }, { silent: true })}
+                />
               </div>
 
               {isTable && (
@@ -145,11 +202,35 @@ export function PropertiesModal() {
                 </>
               )}
 
-              <button onClick={() => removeElement(element.id)} className="btn-danger w-full">
+              <button onClick={() => setConfirmDelete(true)} className="btn-danger w-full">
                 {t("builder.deleteElement")}
               </button>
             </div>
           </GlassCard>
+        </motion.div>
+      )}
+
+      {element && confirmDelete && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        >
+          <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}>
+            <GlassCard className="w-96 p-6">
+              <h3 className="mb-2 text-base font-semibold text-slate-100">{t("builder.deleteElementConfirmTitle")}</h3>
+              <p className="mb-6 text-sm text-slate-400">{t("builder.deleteElementConfirmBody", { label: element.label })}</p>
+              <div className="flex justify-end gap-2">
+                <button className="btn-ghost" onClick={() => setConfirmDelete(false)}>
+                  {t("common.cancel")}
+                </button>
+                <button className="btn-danger" onClick={handleDelete}>
+                  {t("builder.deleteElement")}
+                </button>
+              </div>
+            </GlassCard>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

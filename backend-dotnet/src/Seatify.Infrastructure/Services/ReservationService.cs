@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Seatify.Application.Common;
 using Seatify.Application.Common.Exceptions;
 using Seatify.Application.DTOs.Realtime;
 using Seatify.Application.DTOs.Reservations;
@@ -30,8 +31,6 @@ public class ReservationService : IReservationService
         _options = options.Value;
     }
 
-    private static string LockKey(Guid tableId) => $"table-hold:{tableId}";
-
     public async Task<HoldTableResponseDto> HoldAsync(Guid userId, HoldTableRequestDto request)
     {
         var table = await _db.Tables
@@ -39,17 +38,29 @@ public class ReservationService : IReservationService
             .FirstOrDefaultAsync(t => t.Id == request.TableId)
             ?? throw new NotFoundException(nameof(Table), request.TableId);
 
-        if (table.Status == TableStatus.Booked)
+        // Availability is entirely per date+time-slot — a table booked for one date/slot must
+        // stay free for every other one. Never gate on `table.Status`, which is a single
+        // global column with no date awareness (see ReservationLock's remarks).
+        var now = DateTime.UtcNow;
+        var hasConflict = await _db.Reservations.AnyAsync(r =>
+            r.TableId == request.TableId &&
+            r.ReservationDate == request.ReservationDate &&
+            r.TimeSlot == request.TimeSlot &&
+            (r.Status == ReservationStatus.Confirmed || (r.Status == ReservationStatus.Held && r.HoldExpiresAt > now)));
+
+        if (hasConflict)
         {
-            throw new ConflictException("This table is already booked.");
+            throw new ConflictException("This table is already held or booked for that date and time.");
         }
 
         var holdToken = Guid.NewGuid().ToString("N");
         var ttl = TimeSpan.FromMinutes(_options.HoldDurationMinutes);
+        var lockKey = ReservationLock.Key(request.TableId, request.ReservationDate, request.TimeSlot);
 
         // Redis SET NX is the actual concurrency gate: if two requests race here, only one
-        // acquires the key and the other gets false back atomically.
-        var acquired = await _redisLock.TryAcquireLockAsync(LockKey(table.Id), holdToken, ttl);
+        // acquires the key and the other gets false back atomically. Scoped to date+time-slot
+        // so a hold on one date never blocks a hold on another.
+        var acquired = await _redisLock.TryAcquireLockAsync(lockKey, holdToken, ttl);
         if (!acquired)
         {
             throw new ConflictException("This table is currently held by another guest. Please try another table.");
@@ -70,8 +81,6 @@ public class ReservationService : IReservationService
             DepositFee = table.DepositFee
         };
 
-        table.Status = TableStatus.Held;
-
         _db.Reservations.Add(reservation);
         await _db.SaveChangesAsync();
 
@@ -81,7 +90,9 @@ public class ReservationService : IReservationService
             FloorPlanId = table.FloorPlanId,
             TableId = table.Id,
             Status = TableStatus.Held.ToString(),
-            HoldExpiresAt = expiresAt
+            HoldExpiresAt = expiresAt,
+            ReservationDate = request.ReservationDate,
+            TimeSlot = request.TimeSlot
         });
 
         return new HoldTableResponseDto
@@ -116,14 +127,13 @@ public class ReservationService : IReservationService
             throw new UnauthorizedAppException("Invalid hold token.");
         }
 
-        var lockKey = LockKey(reservation.TableId);
+        var lockKey = ReservationLock.Key(reservation.TableId, reservation.ReservationDate, reservation.TimeSlot);
         var currentLockValue = await _redisLock.GetLockValueAsync(lockKey);
 
         if (currentLockValue is null || currentLockValue != reservation.HoldToken)
         {
             // The Redis TTL already expired even though the background sweep hasn't caught up yet.
             reservation.Status = ReservationStatus.Expired;
-            reservation.Table.Status = TableStatus.Available;
             await _db.SaveChangesAsync();
 
             await _notifier.NotifyTableStatusChangedAsync(new TableStatusChangedMessage
@@ -131,7 +141,9 @@ public class ReservationService : IReservationService
                 VenueId = reservation.Table.FloorPlan.VenueId,
                 FloorPlanId = reservation.Table.FloorPlanId,
                 TableId = reservation.TableId,
-                Status = TableStatus.Available.ToString()
+                Status = TableStatus.Available.ToString(),
+                ReservationDate = reservation.ReservationDate,
+                TimeSlot = reservation.TimeSlot
             });
 
             throw new GoneException("Your hold has expired. Please hold the table again.");
@@ -141,7 +153,6 @@ public class ReservationService : IReservationService
 
         reservation.Status = ReservationStatus.Confirmed;
         reservation.DepositPaid = true;
-        reservation.Table.Status = TableStatus.Booked;
 
         await _db.SaveChangesAsync();
 
@@ -150,7 +161,9 @@ public class ReservationService : IReservationService
             VenueId = reservation.Table.FloorPlan.VenueId,
             FloorPlanId = reservation.Table.FloorPlanId,
             TableId = reservation.TableId,
-            Status = TableStatus.Booked.ToString()
+            Status = TableStatus.Booked.ToString(),
+            ReservationDate = reservation.ReservationDate,
+            TimeSlot = reservation.TimeSlot
         });
 
         return ToDto(reservation);
@@ -175,11 +188,10 @@ public class ReservationService : IReservationService
 
         if (reservation.Status == ReservationStatus.Held)
         {
-            await _redisLock.ReleaseLockAsync(LockKey(reservation.TableId), reservation.HoldToken);
+            await _redisLock.ReleaseLockAsync(ReservationLock.Key(reservation.TableId, reservation.ReservationDate, reservation.TimeSlot), reservation.HoldToken);
         }
 
         reservation.Status = ReservationStatus.Cancelled;
-        reservation.Table.Status = TableStatus.Available;
 
         await _db.SaveChangesAsync();
 
@@ -188,7 +200,9 @@ public class ReservationService : IReservationService
             VenueId = reservation.Table.FloorPlan.VenueId,
             FloorPlanId = reservation.Table.FloorPlanId,
             TableId = reservation.TableId,
-            Status = TableStatus.Available.ToString()
+            Status = TableStatus.Available.ToString(),
+            ReservationDate = reservation.ReservationDate,
+            TimeSlot = reservation.TimeSlot
         });
     }
 
@@ -249,7 +263,7 @@ public class ReservationService : IReservationService
 
         foreach (var reservation in expired)
         {
-            var lockKey = LockKey(reservation.TableId);
+            var lockKey = ReservationLock.Key(reservation.TableId, reservation.ReservationDate, reservation.TimeSlot);
             var currentValue = await _redisLock.GetLockValueAsync(lockKey);
 
             if (currentValue == reservation.HoldToken)
@@ -259,14 +273,15 @@ public class ReservationService : IReservationService
             }
 
             reservation.Status = ReservationStatus.Expired;
-            reservation.Table.Status = TableStatus.Available;
 
             notifications.Add(new TableStatusChangedMessage
             {
                 VenueId = reservation.Table.FloorPlan.VenueId,
                 FloorPlanId = reservation.Table.FloorPlanId,
                 TableId = reservation.TableId,
-                Status = TableStatus.Available.ToString()
+                Status = TableStatus.Available.ToString(),
+                ReservationDate = reservation.ReservationDate,
+                TimeSlot = reservation.TimeSlot
             });
         }
 

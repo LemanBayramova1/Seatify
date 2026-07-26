@@ -16,7 +16,8 @@
     "builder": "Floor Plan Builder",
     "booking": "Book a Table",
     "restaurants": "Restaurants",
-    "myBookings": "My Bookings"
+    "myBookings": "My Bookings",
+    "platformAdmin": "Platform Admin"
   },
   "header": {
     "signIn": "Sign In",
@@ -90,11 +91,15 @@
     "label": "Label",
     "positionX": "X position",
     "positionY": "Y position",
+    "width": "Width",
+    "height": "Height / Thickness",
     "rotation": "Rotation",
     "capacity": "Capacity (seats)",
     "minDeposit": "Minimum deposit (AZN)",
     "zone": "Zone",
     "deleteElement": "Delete element",
+    "deleteElementConfirmTitle": "Delete this element?",
+    "deleteElementConfirmBody": "This removes \"{{label}}\" from the canvas. You can still undo right after.",
     "selectHint": "Select an element on the canvas to edit its properties",
     "signInPrompt": "Sign in as a Restaurant Owner to manage your floor plan.",
     "notAuthorized": "Only Restaurant Owner accounts can access the floor plan builder.",
@@ -198,7 +203,8 @@
       "date": "Date",
       "timeSlot": "Time",
       "allZones": "All zones",
-      "search": "Search"
+      "search": "Search",
+      "slotPast": "past"
     },
     "tooltip": {
       "capacity": "Seats {{count}}",
@@ -280,5 +286,40 @@
     "saving": "Saving…",
     "saved": "Saved",
     "saveFailed": "Could not save. Please try again."
+  },
+  "platformAdmin": {
+    "title": "Platform Admin",
+    "subtitle": "An overview across every restaurant, user, and reservation.",
+    "loadFailed": "Could not load this data. Please try again.",
+    "actionFailed": "That action failed. Please try again.",
+    "noData": "No data yet.",
+    "tab": {
+      "overview": "Overview",
+      "venues": "Venues",
+      "users": "Users",
+      "reservations": "Manage Reservations"
+    },
+    "metricTotalBookings": "Total Bookings",
+    "metricMonthlyRevenue": "Monthly Revenue (AZN)",
+    "metricActiveVenues": "Active Venues",
+    "metricRegisteredUsers": "Registered Users",
+    "chartReservationTrend": "Reservation Trend",
+    "chartRevenueTrend": "Revenue Trend",
+    "chartStatusBreakdown": "Status Breakdown",
+    "colVenue": "Venue",
+    "colOwner": "Owner",
+    "colActive": "Active",
+    "colRole": "Role",
+    "colJoined": "Joined",
+    "colActions": "Actions",
+    "active": "Active",
+    "inactive": "Inactive",
+    "approve": "Approve",
+    "reject": "Reject",
+    "role": {
+      "Customer": "Guest",
+      "RestaurantOwner": "Restaurant Owner",
+      "Admin": "Admin"
+    }
   }
 }

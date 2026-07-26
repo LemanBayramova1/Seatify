@@ -19,6 +19,10 @@ public class Venue : BaseEntity
     /// <summary>Comma-separated photo gallery URLs, in addition to the single cover `ImageUrl`.</summary>
     public string? GalleryImageUrls { get; set; }
 
+    /// <summary>Platform-admin on/off switch — an inactive venue is hidden from the public
+    /// marketplace but keeps all its data (distinct from a table's own `IsActive`).</summary>
+    public bool IsActive { get; set; } = true;
+
     /// <summary>The Restaurant Owner who manages this venue's floor plan. Admins may also manage any venue.</summary>
     public Guid OwnerId { get; set; }
     public User Owner { get; set; } = null!;

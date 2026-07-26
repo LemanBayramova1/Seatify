@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { TIME_SLOTS } from "../../lib/timeSlots";
+import { isSlotPast, TIME_SLOTS, todayIso } from "../../lib/timeSlots";
 import { ZONES } from "../../lib/zones";
 import { GlassCard } from "../shared/GlassCard";
 
@@ -14,6 +14,7 @@ export function FilterBar({ filters, onChange, availableZones }) {
         <Field label={t("guest.filters.date")}>
           <input
             type="date"
+            min={todayIso()}
             className="glass-input"
             value={filters.date}
             onChange={(e) => onChange({ ...filters, date: e.target.value })}
@@ -23,8 +24,9 @@ export function FilterBar({ filters, onChange, availableZones }) {
         <Field label={t("guest.filters.timeSlot")}>
           <select className="glass-input" value={filters.timeSlot} onChange={(e) => onChange({ ...filters, timeSlot: e.target.value })}>
             {TIME_SLOTS.map((slot) => (
-              <option key={slot} value={slot}>
+              <option key={slot} value={slot} disabled={isSlotPast(filters.date, slot)}>
                 {slot}
+                {isSlotPast(filters.date, slot) ? ` (${t("guest.filters.slotPast")})` : ""}
               </option>
             ))}
           </select>

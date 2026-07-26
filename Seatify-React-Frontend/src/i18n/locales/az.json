@@ -16,7 +16,8 @@
     "builder": "Zal planı redaktoru",
     "booking": "Masa sifariş et",
     "restaurants": "Restoranlar",
-    "myBookings": "Mənim Bronlarım"
+    "myBookings": "Mənim Bronlarım",
+    "platformAdmin": "Platforma İdarəetməsi"
   },
   "header": {
     "signIn": "Daxil ol",
@@ -90,11 +91,15 @@
     "label": "Etiket",
     "positionX": "X mövqeyi",
     "positionY": "Y mövqeyi",
+    "width": "En",
+    "height": "Hündürlük / Qalınlıq",
     "rotation": "Fırlanma",
     "capacity": "Tutum (yer sayı)",
     "minDeposit": "Minimum depozit (AZN)",
     "zone": "Zona",
     "deleteElement": "Elementi sil",
+    "deleteElementConfirmTitle": "Bu elementi silmək istəyirsiniz?",
+    "deleteElementConfirmBody": "\"{{label}}\" elementini kətandan siləcək. Bu əməliyyatı geri qaytara bilərsiniz.",
     "selectHint": "Xüsusiyyətlərini redaktə etmək üçün kətandan bir element seçin",
     "signInPrompt": "Zal planınızı idarə etmək üçün Restoran Sahibi kimi daxil olun.",
     "notAuthorized": "Zal planı redaktoruna yalnız Restoran Sahibi hesabları daxil ola bilər.",
@@ -198,7 +203,8 @@
       "date": "Tarix",
       "timeSlot": "Vaxt",
       "allZones": "Bütün zonalar",
-      "search": "Axtar"
+      "search": "Axtar",
+      "slotPast": "keçib"
     },
     "tooltip": {
       "capacity": "{{count}} yer",
@@ -280,5 +286,40 @@
     "saving": "Yadda saxlanılır…",
     "saved": "Yadda saxlanıldı",
     "saveFailed": "Yadda saxlanıla bilmədi. Zəhmət olmasa yenidən cəhd edin."
+  },
+  "platformAdmin": {
+    "title": "Platforma İdarəetməsi",
+    "subtitle": "Bütün restoranlar, istifadəçilər və bronlar üzrə ümumi baxış.",
+    "loadFailed": "Məlumatlar yüklənə bilmədi. Zəhmət olmasa yenidən cəhd edin.",
+    "actionFailed": "Əməliyyat uğursuz oldu. Zəhmət olmasa yenidən cəhd edin.",
+    "noData": "Hələ məlumat yoxdur.",
+    "tab": {
+      "overview": "Ümumi baxış",
+      "venues": "Restoranlar",
+      "users": "İstifadəçilər",
+      "reservations": "Bronlar İdarəetməsi"
+    },
+    "metricTotalBookings": "Ümumi Bronlar",
+    "metricMonthlyRevenue": "Aylıq Gəlir (AZN)",
+    "metricActiveVenues": "Aktiv Restoranlar",
+    "metricRegisteredUsers": "Qeydiyyatlı İstifadəçilər",
+    "chartReservationTrend": "Bron Tendensiyası",
+    "chartRevenueTrend": "Gəlir Tendensiyası",
+    "chartStatusBreakdown": "Status Bölgüsü",
+    "colVenue": "Restoran",
+    "colOwner": "Sahibi",
+    "colActive": "Aktiv",
+    "colRole": "Rol",
+    "colJoined": "Qoşulma tarixi",
+    "colActions": "Əməliyyatlar",
+    "active": "Aktiv",
+    "inactive": "Deaktiv",
+    "approve": "Təsdiqlə",
+    "reject": "Ləğv et",
+    "role": {
+      "Customer": "Qonaq",
+      "RestaurantOwner": "Restoran Sahibi",
+      "Admin": "Admin"
+    }
   }
 }

@@ -7,6 +7,7 @@ import { ROLES, useAuthStore } from "./store/useAuthStore";
 import AdminBuilderPage from "./pages/AdminBuilderPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import VenueSettingsPage from "./pages/VenueSettingsPage";
+import PlatformAdminPage from "./pages/PlatformAdminPage";
 import CustomerBookingPage from "./pages/CustomerBookingPage";
 import LandingPage from "./pages/LandingPage";
 import RestaurantsPage from "./pages/RestaurantsPage";
@@ -16,7 +17,8 @@ export default function App() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const isRestaurantOwner = user?.role === ROLES.RESTAURANT_OWNER;
-  const homePath = isRestaurantOwner ? "/admin" : "/restaurants";
+  const isAdmin = user?.role === ROLES.ADMIN;
+  const homePath = isRestaurantOwner ? "/admin" : isAdmin ? "/platform-admin" : "/restaurants";
 
   return (
     <div className="min-h-full">
@@ -49,6 +51,14 @@ export default function App() {
             element={
               <RequireRole role={ROLES.RESTAURANT_OWNER}>
                 <AdminBuilderPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/platform-admin"
+            element={
+              <RequireRole role={ROLES.ADMIN}>
+                <PlatformAdminPage />
               </RequireRole>
             }
           />
