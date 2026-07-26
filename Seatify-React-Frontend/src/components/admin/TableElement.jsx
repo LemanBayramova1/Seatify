@@ -1,0 +1,314 @@
+import { useEffect, useRef } from "react";
+import Konva from "konva";
+import { Circle, Group, Line, Rect, Text, Transformer } from "react-konva";
+import { ELEMENT_TYPES, SELECTION_COLOR, SELECTION_GLOW, STATUS, STATUS_COLOR, STATUS_GLOW, zoneColor } from "../../lib/zones";
+import { getChairPositions } from "../../lib/chairLayout";
+
+const TABLE_TYPES = new Set([ELEMENT_TYPES.ROUND_TABLE, ELEMENT_TYPES.SQUARE_TABLE, ELEMENT_TYPES.RECT_TABLE]);
+
+/**
+ * Renders one floor-plan element on the Konva canvas. Shared between the
+ * admin builder (`mode="editor"`: draggable, resizable, colored by zone) and
+ * the customer map (`mode="viewer"`: read-only, colored by live status).
+ */
+export function TableElement({
+  element,
+  mode = "editor",
+  isSelected = false,
+  status,
+  onSelect,
+  onChange,
+  onClick,
+  onHover,
+  onHoverEnd,
+}) {
+  const shapeRef = useRef(null);
+  const transformerRef = useRef(null);
+  const pulseTweenRef = useRef(null);
+  const hoverTweenRef = useRef(null);
+  const isTable = TABLE_TYPES.has(element.type);
+  const isEditor = mode === "editor";
+
+  useEffect(() => {
+    if (isEditor && isSelected && transformerRef.current && shapeRef.current) {
+      transformerRef.current.nodes([shapeRef.current]);
+      transformerRef.current.getLayer()?.batchDraw();
+    }
+  }, [isEditor, isSelected]);
+
+  // Amber pulse for HELD tables — a looping yoyo tween on the shape's glow.
+  useEffect(() => {
+    pulseTweenRef.current?.destroy();
+    pulseTweenRef.current = null;
+    const node = shapeRef.current;
+    if (!isEditor && isTable && status === STATUS.HELD && node) {
+      node.shadowBlur(16);
+      node.shadowOpacity(0.55);
+      const tween = new Konva.Tween({
+        node,
+        duration: 0.7,
+        shadowBlur: 26,
+        shadowOpacity: 0.95,
+        yoyo: true,
+        repeat: -1,
+        easing: Konva.Easings.EaseInOut,
+      });
+      tween.play();
+      pulseTweenRef.current = tween;
+    }
+    return () => {
+      pulseTweenRef.current?.destroy();
+      pulseTweenRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, isEditor, isTable]);
+
+  const fill = isTable
+    ? isEditor
+      ? zoneColor(element.zone)
+      : STATUS_COLOR[status] ?? STATUS_COLOR.FREE
+    : decorFill(element.type);
+
+  const glow = !isEditor && isTable ? STATUS_GLOW[status] ?? STATUS_GLOW.FREE : null;
+  const dimmed = !isEditor && isTable && status === STATUS.BOOKED;
+  const canInteract = !isEditor && isTable && status === STATUS.FREE;
+
+  function runHoverTween(node, toShadowBlur, toScale) {
+    if (!node) return;
+    hoverTweenRef.current?.destroy();
+    const tween = new Konva.Tween({
+      node,
+      duration: 0.18,
+      shadowBlur: toShadowBlur,
+      scaleX: toScale,
+      scaleY: toScale,
+      easing: Konva.Easings.EaseOut,
+    });
+    tween.play();
+    hoverTweenRef.current = tween;
+  }
+
+  const interactionProps = isEditor
+    ? {
+        draggable: true,
+        onClick: onSelect,
+        onTap: onSelect,
+        onDragEnd: (e) => onChange?.({ x: e.target.x(), y: e.target.y() }),
+        onTransformEnd: () => {
+          const node = shapeRef.current;
+          if (!node) return;
+          const scaleX = node.scaleX();
+          const scaleY = node.scaleY();
+          node.scaleX(1);
+          node.scaleY(1);
+          onChange?.({
+            x: node.x(),
+            y: node.y(),
+            rotation: node.rotation(),
+            width: Math.max(20, element.width * scaleX),
+            height: Math.max(20, element.height * scaleY),
+          });
+        },
+      }
+    : isTable
+      ? {
+          onClick: canInteract ? onClick : undefined,
+          onTap: canInteract ? onClick : undefined,
+          onMouseEnter: (e) => {
+            const stage = e.target.getStage();
+            stage.container().style.cursor = canInteract ? "pointer" : "default";
+            onHover?.(e);
+            if (canInteract) runHoverTween(shapeRef.current, 18, 1.035);
+          },
+          onMouseLeave: (e) => {
+            const stage = e.target.getStage();
+            stage.container().style.cursor = "default";
+            onHoverEnd?.();
+            if (canInteract) runHoverTween(shapeRef.current, 10, 1);
+          },
+        }
+      : {};
+
+  const chairs = isTable
+    ? getChairPositions({
+        type: element.type,
+        x: element.x,
+        y: element.y,
+        width: element.width,
+        height: element.height,
+        rotation: element.rotation,
+        capacity: element.capacity,
+      })
+    : [];
+
+  const chairBackFill = isEditor ? "#94a3b8" : glow ?? "#94a3b8";
+  const selectionRingSize = Math.max(element.width, element.height) / 2 + 14;
+
+  return (
+    <Group>
+      {element.type === ELEMENT_TYPES.ZONE_LABEL && (
+        <>
+          <Text
+            x={element.x - element.width / 2}
+            y={element.y - 8}
+            width={element.width}
+            align="center"
+            text={String(element.label).toUpperCase()}
+            fontSize={13}
+            fontStyle="700"
+            letterSpacing={2}
+            fill="rgba(226,232,240,0.6)"
+            listening={false}
+          />
+          <Line
+            points={[element.x - element.width / 2 + 18, element.y + 12, element.x + element.width / 2 - 18, element.y + 12]}
+            stroke="rgba(226,232,240,0.16)"
+            strokeWidth={1}
+            listening={false}
+          />
+        </>
+      )}
+
+      {element.type === ELEMENT_TYPES.WINDOW && (
+        <Line
+          points={[element.x - element.width / 2, element.y, element.x + element.width / 2, element.y]}
+          stroke="#38bdf8"
+          strokeWidth={6}
+          dash={[10, 6]}
+          lineCap="round"
+          listening={false}
+        />
+      )}
+      {element.type === ELEMENT_TYPES.DOOR && (
+        <Line
+          points={[element.x - element.width / 2, element.y, element.x + element.width / 2, element.y]}
+          stroke="#d97706"
+          strokeWidth={8}
+          lineCap="round"
+          listening={false}
+        />
+      )}
+      {element.type === ELEMENT_TYPES.STAGE && (
+        <Rect
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2}
+          offsetY={element.height / 2}
+          width={element.width}
+          height={element.height}
+          rotation={element.rotation}
+          fill={fill}
+          opacity={0.85}
+          cornerRadius={10}
+          stroke="#e9d5ff"
+          strokeWidth={1}
+          {...interactionProps}
+        />
+      )}
+
+      {isTable &&
+        chairs.map((chair, i) => (
+          <Group key={`${element.id}-chair-${i}`} x={chair.x} y={chair.y} rotation={chair.rotation} opacity={dimmed ? 0.4 : 1} listening={false}>
+            <Rect width={14} height={16} offsetX={2} offsetY={8} cornerRadius={[3, 7, 7, 3]} fill="#e2e8f0" stroke="rgba(15,23,42,0.45)" strokeWidth={1} />
+            <Rect x={5} y={0} width={4} height={12} offsetY={6} cornerRadius={1.5} fill={chairBackFill} />
+          </Group>
+        ))}
+
+      {isTable && element.type === ELEMENT_TYPES.ROUND_TABLE && (
+        <Circle
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          radius={element.width / 2}
+          rotation={element.rotation}
+          fill={fill}
+          opacity={dimmed ? 0.55 : 1}
+          stroke={isEditor && isSelected ? "#ffffff" : (glow ?? "rgba(15,23,42,0.55)")}
+          strokeWidth={isEditor && isSelected ? 3 : glow ? 2.5 : 1.5}
+          shadowColor={glow ?? "black"}
+          shadowOpacity={glow ? 0.5 : 0.35}
+          shadowBlur={glow ? 14 : 10}
+          shadowOffsetY={glow ? 0 : 4}
+          {...interactionProps}
+        />
+      )}
+      {isTable && element.type !== ELEMENT_TYPES.ROUND_TABLE && (
+        <Rect
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2}
+          offsetY={element.height / 2}
+          width={element.width}
+          height={element.height}
+          rotation={element.rotation}
+          fill={fill}
+          opacity={dimmed ? 0.55 : 1}
+          cornerRadius={element.type === ELEMENT_TYPES.SQUARE_TABLE ? 10 : 16}
+          stroke={isEditor && isSelected ? "#ffffff" : (glow ?? "rgba(15,23,42,0.55)")}
+          strokeWidth={isEditor && isSelected ? 3 : glow ? 2.5 : 1.5}
+          shadowColor={glow ?? "black"}
+          shadowOpacity={glow ? 0.5 : 0.35}
+          shadowBlur={glow ? 14 : 10}
+          shadowOffsetY={glow ? 0 : 4}
+          {...interactionProps}
+        />
+      )}
+
+      {!isEditor && isTable && isSelected && element.type === ELEMENT_TYPES.ROUND_TABLE && (
+        <Circle
+          x={element.x}
+          y={element.y}
+          radius={selectionRingSize}
+          stroke={SELECTION_COLOR}
+          strokeWidth={3}
+          shadowColor={SELECTION_GLOW}
+          shadowOpacity={0.9}
+          shadowBlur={20}
+          listening={false}
+        />
+      )}
+      {!isEditor && isTable && isSelected && element.type !== ELEMENT_TYPES.ROUND_TABLE && (
+        <Rect
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2 + 10}
+          offsetY={element.height / 2 + 10}
+          width={element.width + 20}
+          height={element.height + 20}
+          rotation={element.rotation}
+          cornerRadius={element.type === ELEMENT_TYPES.SQUARE_TABLE ? 14 : 20}
+          stroke={SELECTION_COLOR}
+          strokeWidth={3}
+          shadowColor={SELECTION_GLOW}
+          shadowOpacity={0.9}
+          shadowBlur={20}
+          listening={false}
+        />
+      )}
+
+      {(isTable || element.type === ELEMENT_TYPES.STAGE) && (
+        <Text
+          x={element.x - element.width / 2}
+          y={element.y - 7}
+          width={element.width}
+          align="center"
+          text={isTable ? `${element.label}${element.capacity ? ` · ${element.capacity}p` : ""}` : element.label}
+          fontSize={12}
+          fontStyle="700"
+          fill={isTable && !isEditor ? "#f8fafc" : "#0b0e16"}
+          shadowColor={isTable && !isEditor ? "rgba(0,0,0,0.6)" : undefined}
+          shadowBlur={isTable && !isEditor ? 3 : 0}
+          listening={false}
+        />
+      )}
+      {isEditor && isSelected && <Transformer ref={transformerRef} rotateEnabled keepRatio={false} anchorCornerRadius={4} />}
+    </Group>
+  );
+}
+
+function decorFill(type) {
+  if (type === ELEMENT_TYPES.STAGE) return "#f0abfc";
+  return "#94a3b8";
+}

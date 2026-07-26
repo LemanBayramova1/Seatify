@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seatify | Ağıllı Masa Bron Sistemi</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+        colors: {
+          brand: {
+            400: '#38bdf8',
+            500: '#0ea5e9',
+            600: '#0284c7',
+          },
+        },
+        boxShadow: {
+          glow: '0 0 24px rgba(14,165,233,0.45)',
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root {
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    background: #05070d;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(14,165,233,0.14), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(168,85,247,0.12), transparent 45%),
+      linear-gradient(180deg, #05070d 0%, #070a13 100%);
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.24); }
+
+  /* ---------- Glass panels ---------- */
+  .glass {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .glass-strong {
+    background: rgba(15,18,28,0.92);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .glass-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #e2e8f0;
+    transition: all .2s ease;
+  }
+  .glass-input:focus {
+    outline: none;
+    border-color: rgba(56,189,248,0.6);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.15);
+    background: rgba(255,255,255,0.07);
+  }
+  .glass-input::placeholder { color: #64748b; }
+
+  .card-hover { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+  .card-hover:hover { transform: translateY(-4px); border-color: rgba(56,189,248,0.35); box-shadow: 0 16px 40px rgba(0,0,0,0.45); }
+
+  .nav-tab {
+    position: relative;
+    transition: color .2s ease;
+    color: #94a3b8;
+  }
+  .nav-tab.active { color: #f1f5f9; }
+  .nav-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -14px;
+    height: 2px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    border-radius: 999px;
+    box-shadow: 0 0 12px rgba(56,189,248,0.7);
+  }
+
+  .chip {
+    transition: all .2s ease;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip.active {
+    background: rgba(56,189,248,0.16);
+    border-color: rgba(56,189,248,0.55);
+    color: #7dd3fc;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    color: white;
+    font-weight: 600;
+    transition: filter .2s ease, transform .15s ease;
+  }
+  .btn-primary:hover { filter: brightness(1.12); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: #cbd5e1;
+    transition: all .2s ease;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(2,4,10,0.75);
+    backdrop-filter: blur(6px);
+    z-index: 70;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+
+  /* ---------- Floor plan canvas ---------- */
+  .fp-canvas {
+    position: relative;
+    width: 100%;
+    height: 640px;
+    border-radius: 1.25rem;
+    overflow: hidden;
+    background-color: #0a0e17;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 0 80px rgba(0,0,0,0.55);
+  }
+
+  .fp-zone {
+    position: absolute;
+    border: 1px dashed rgba(255,255,255,0.14);
+    border-radius: 1rem;
+    pointer-events: none;
+  }
+  .fp-zone-label {
+    position: absolute;
+    top: 10px; left: 14px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: rgba(148,163,184,0.65);
+    text-transform: uppercase;
+  }
+
+  .fp-bar {
+    position: absolute;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, rgba(120,53,15,0.55), rgba(180,83,9,0.35));
+    border: 1px solid rgba(251,146,60,0.35);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(253,186,116,0.85);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .fp-table {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    border: 2px solid;
+    color: #e2e8f0;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .fp-table.shape-round { border-radius: 999px; }
+  .fp-table.shape-square,
+  .fp-table.shape-rect { border-radius: 0.5rem; }
+
+  .fp-table.status-available {
+    background: rgba(16,185,129,0.14);
+    border-color: rgba(52,211,153,0.7);
+    box-shadow: 0 0 18px rgba(16,185,129,0.28);
+  }
+  .fp-table.status-available:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 28px rgba(16,185,129,0.45);
+  }
+  .fp-table.status-held {
+    background: rgba(245,158,11,0.14);
+    border-color: rgba(251,191,36,0.7);
+    box-shadow: 0 0 18px rgba(245,158,11,0.3);
+    cursor: not-allowed;
+  }
+  .fp-table.status-booked {
+    background: rgba(244,63,94,0.16);
+    border-color: rgba(251,113,133,0.55);
+    color: rgba(226,232,240,0.45);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .fp-table.status-selected {
+    background: rgba(56,189,248,0.22);
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 4px rgba(56,189,248,0.2), 0 0 30px rgba(56,189,248,0.55);
+    transform: scale(1.08);
+    z-index: 5;
+  }
+  .fp-table.fp-hidden { display: none; }
+
+  .chair {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 4px;
+    background: rgba(148,163,184,0.4);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .fp-table.status-available .chair { background: rgba(52,211,153,0.55); border-color: rgba(52,211,153,0.8); }
+  .fp-table.status-held .chair { background: rgba(251,191,36,0.55); border-color: rgba(251,191,36,0.8); }
+  .fp-table.status-booked .chair { background: rgba(148,163,184,0.2); border-color: rgba(148,163,184,0.25); }
+  .fp-table.status-selected .chair { background: #38bdf8; border-color: #7dd3fc; }
+
+  .legend-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+
+  /* ---------- Toasts ---------- */
+  #toastContainer {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    z-index: 100;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 360px;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(30px); }
+  }
+  .toast { animation: toastIn .25s ease forwards; }
+  .toast.closing { animation: toastOut .25s ease forwards; }
+
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+  }
+  .shake { animation: shake .5s; }
+
+  .avatar-badge {
+    width: 34px; height: 34px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    font-weight: 700; font-size: 12px; color: white;
+  }
+
+  .status-badge {
+    font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+</style>
+</head>
+
+<body class="text-slate-100">
+
+<!-- =========================================================
+     TOAST CONTAINER
+========================================================== -->
+<div id="toastContainer"></div>
+
+<!-- =========================================================
+     HEADER / NAVIGATION
+========================================================== -->
+<header class="fixed top-0 inset-x-0 z-40 glass-strong">
+  <div class="mx-auto max-w-[1280px] px-5 h-16 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2.5 shrink-0">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-500 flex items-center justify-center shadow-glow">
+        <i class="fa-solid fa-chair text-white text-sm"></i>
+      </div>
+      <span class="text-lg font-extrabold tracking-tight">Seatify</span>
+    </div>
+
+    <nav class="hidden md:flex items-center gap-8 text-sm font-semibold">
+      <button class="nav-tab active" data-nav="catalog" data-i18n="nav.catalog">Restoranlar</button>
+      <button class="nav-tab" data-nav="floorplan" data-i18n="nav.floorplan">Masa Xəritəsi</button>
+      <button class="nav-tab" data-nav="bookings" data-i18n="nav.bookings">Bronlarım</button>
+      <button class="nav-tab" data-nav="admin" data-i18n="nav.admin">Admin Panel</button>
+    </nav>
+
+    <div class="flex items-center gap-3 shrink-0">
+      <button id="langToggle" class="btn-ghost px-3 py-1.5 rounded-lg text-xs font-bold">AZ / EN</button>
+      <div id="authArea"></div>
+    </div>
+  </div>
+
+  <!-- Mobile nav -->
+  <nav class="md:hidden flex items-center justify-around border-t border-white/5 py-2 text-[11px] font-semibold">
+    <button class="nav-tab active" data-nav="catalog" data-i18n="nav.catalog">Restoranlar</button>
+    <button class="nav-tab" data-nav="floorplan" data-i18n="nav.floorplan">Xəritə</button>
+    <button class="nav-tab" data-nav="bookings" data-i18n="nav.bookings">Bronlarım</button>
+    <button class="nav-tab" data-nav="admin" data-i18n="nav.admin">Admin</button>
+  </nav>
+</header>
+
+<main class="pt-24 pb-20">
+
+  <!-- =========================================================
+       VIEW: RESTAURANT CATALOG
+  ========================================================== -->
+  <section id="view-catalog" class="view active">
+    <div class="mx-auto max-w-[1280px] px-5">
+
+      <!-- Hero -->
+      <div class="glass rounded-3xl p-8 md:p-10 mb-8 relative overflow-hidden">
+        <div class="absolute -top-24 -right-24 w-72 h-72 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <h1 class="text-2xl md:text-4xl font-extrabold mb-2 relative" data-i18n="catalog.heroTitle">Bakının ən yaxşı masalarını kəşf et</h1>
+        <p class="text-slate-400 mb-6 relative max-w-xl" data-i18n="catalog.heroSubtitle">Sevimli restoranını seç, real vaxt masa xəritəsindən yerini bron et.</p>
+
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+          <input id="searchInput" type="text" class="glass-input w-full rounded-xl pl-11 pr-4 py-3 text-sm" data-i18n-placeholder="catalog.searchPlaceholder" placeholder="Restoran, mətbəx və ya ünvan axtar...">
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-5">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wide self-center mr-1" data-i18n="catalog.cuisineLabel">Mətbəx:</span>
+          <button class="chip active px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-cuisine="all" data-i18n="catalog.cuisineAll">Hamısı</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-cuisine="steakhouse" data-i18n="catalog.cuisineSteakhouse">Steakhouse</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-cuisine="milli" data-i18n="catalog.cuisineMilli">Milli</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-cuisine="italyan" data-i18n="catalog.cuisineItalyan">İtalyan</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-cuisine="asiya" data-i18n="catalog.cuisineAsiya">Asiya</button>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-3">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wide self-center mr-1" data-i18n="catalog.zoneLabel">Zona:</span>
+          <button class="chip active px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-zone="all" data-i18n="catalog.zoneAll">Hamısı</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-zone="teras" data-i18n="catalog.zoneTeras">Teras</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-zone="vip" data-i18n="catalog.zoneVip">VIP</button>
+          <button class="chip px-3 py-1.5 rounded-full text-xs font-semibold border border-white/10" data-zone="main" data-i18n="catalog.zoneMain">Əsas Zal</button>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div id="restaurantGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div id="catalogEmpty" class="hidden text-center py-16 text-slate-500">
+        <i class="fa-solid fa-utensils text-3xl mb-3 opacity-40"></i>
+        <p data-i18n="catalog.noResults">Nəticə tapılmadı. Filtrləri dəyişin.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       VIEW: FLOOR PLAN
+  ========================================================== -->
+  <section id="view-floorplan" class="view">
+    <div class="mx-auto max-w-[1280px] px-5">
+
+      <div class="flex items-center gap-3 mb-5">
+        <button id="fpBackBtn" class="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center">
+          <i class="fa-solid fa-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 id="fpRestaurantName" class="text-xl font-extrabold">—</h2>
+          <p id="fpRestaurantAddress" class="text-xs text-slate-500"></p>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="glass rounded-2xl p-4 mb-5 flex flex-wrap gap-3 items-end">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="floorplan.date">Tarix</label>
+          <input id="fpDate" type="date" class="glass-input rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="floorplan.time">Saat</label>
+          <select id="fpTimeSlot" class="glass-input rounded-lg px-3 py-2 text-sm">
+            <option value="18:00-20:00">18:00 - 20:00</option>
+            <option value="20:00-22:00" selected>20:00 - 22:00</option>
+            <option value="22:00-00:00">22:00 - 00:00</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="floorplan.guests">Qonaq sayı</label>
+          <select id="fpGuests" class="glass-input rounded-lg px-3 py-2 text-sm">
+            <option value="0" data-i18n="floorplan.guestsAny">Fərq etməz</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="floorplan.zone">Zona</label>
+          <select id="fpZone" class="glass-input rounded-lg px-3 py-2 text-sm">
+            <option value="all" data-i18n="floorplan.zoneAllOpt">Bütün zonalar</option>
+            <option value="teras" data-i18n="catalog.zoneTeras">Teras</option>
+            <option value="vip" data-i18n="catalog.zoneVip">VIP</option>
+            <option value="main" data-i18n="catalog.zoneMain">Əsas Zal</option>
+          </select>
+        </div>
+
+        <div class="ml-auto flex flex-wrap gap-4 text-xs font-semibold text-slate-400">
+          <span class="flex items-center gap-1.5"><i class="legend-dot" style="background:#34d399"></i><span data-i18n="floorplan.legendAvailable">Boş</span></span>
+          <span class="flex items-center gap-1.5"><i class="legend-dot" style="background:#fbbf24"></i><span data-i18n="floorplan.legendHeld">Saxlanılıb</span></span>
+          <span class="flex items-center gap-1.5"><i class="legend-dot" style="background:#fb7185"></i><span data-i18n="floorplan.legendBooked">Dolu</span></span>
+          <span class="flex items-center gap-1.5"><i class="legend-dot" style="background:#38bdf8"></i><span data-i18n="floorplan.legendSelected">Seçilmiş</span></span>
+        </div>
+      </div>
+
+      <div class="flex flex-col lg:flex-row gap-5">
+        <!-- Canvas -->
+        <div class="flex-1">
+          <div id="fpCanvas" class="fp-canvas"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="w-full lg:w-[340px] shrink-0">
+          <div class="glass rounded-2xl p-5 sticky top-24">
+            <div id="fpSidebarEmpty" class="text-center py-10 text-slate-500">
+              <i class="fa-solid fa-hand-pointer text-2xl mb-3 opacity-40"></i>
+              <p data-i18n="floorplan.selectPrompt">Davam etmək üçün bir masa seçin.</p>
+            </div>
+
+            <div id="fpSidebarContent" class="hidden">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-extrabold">
+                  <span data-i18n="floorplan.tableId">Masa</span> <span id="sbTableId"></span>
+                </h3>
+                <span id="sbZoneBadge" class="status-badge bg-white/5 border border-white/10 text-slate-300"></span>
+              </div>
+
+              <dl class="grid grid-cols-2 gap-3 text-sm mb-4">
+                <div>
+                  <dt class="text-[11px] text-slate-500 uppercase font-bold tracking-wide" data-i18n="floorplan.capacity">Tutum</dt>
+                  <dd id="sbCapacity" class="font-semibold">—</dd>
+                </div>
+                <div>
+                  <dt class="text-[11px] text-slate-500 uppercase font-bold tracking-wide" data-i18n="floorplan.deposit">Depozit</dt>
+                  <dd id="sbDeposit" class="font-semibold text-brand-400">—</dd>
+                </div>
+              </dl>
+
+              <div class="mb-4">
+                <p class="text-[11px] text-slate-500 uppercase font-bold tracking-wide mb-1.5" data-i18n="floorplan.features">Xüsusiyyətlər</p>
+                <div id="sbFeatures" class="flex flex-wrap gap-1.5"></div>
+              </div>
+
+              <div class="mb-5">
+                <label class="block text-[11px] text-slate-500 uppercase font-bold tracking-wide mb-1.5" data-i18n="floorplan.specialRequest">Xüsusi istək</label>
+                <textarea id="sbSpecialRequest" rows="3" class="glass-input w-full rounded-lg px-3 py-2 text-sm resize-none" data-i18n-placeholder="floorplan.specialRequestPlaceholder" placeholder="Məs: pəncərə kənarında masa, doğum günü dekoru..."></textarea>
+              </div>
+
+              <button id="proceedToCheckoutBtn" class="btn-primary w-full rounded-xl py-3 text-sm" data-i18n="floorplan.proceedBtn">Bron Etməyə Keç</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       VIEW: MY BOOKINGS
+  ========================================================== -->
+  <section id="view-bookings" class="view">
+    <div class="mx-auto max-w-[1280px] px-5">
+      <h2 class="text-2xl font-extrabold mb-6" data-i18n="bookings.title">Mənim Bronlarım</h2>
+      <div id="bookingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      <div id="bookingsEmpty" class="hidden text-center py-16 text-slate-500">
+        <i class="fa-solid fa-calendar-xmark text-3xl mb-3 opacity-40"></i>
+        <p data-i18n="bookings.empty">Hələ heç bir bronunuz yoxdur.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       VIEW: ADMIN PANEL
+  ========================================================== -->
+  <section id="view-admin" class="view">
+    <div class="mx-auto max-w-[1280px] px-5">
+      <h2 class="text-2xl font-extrabold mb-6" data-i18n="admin.title">Admin Panel</h2>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="glass rounded-2xl p-5">
+          <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="admin.kpiTotalReservations">Ümumi Bronlar</p>
+          <p id="kpiTotalReservations" class="text-2xl font-extrabold">0</p>
+        </div>
+        <div class="glass rounded-2xl p-5">
+          <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="admin.kpiTodayGuests">Bugünkü Qonaqlar</p>
+          <p id="kpiTodayGuests" class="text-2xl font-extrabold">0</p>
+        </div>
+        <div class="glass rounded-2xl p-5">
+          <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="admin.kpiRevenue">Gəlir (AZN)</p>
+          <p id="kpiRevenue" class="text-2xl font-extrabold text-brand-400">0 ₼</p>
+        </div>
+        <div class="glass rounded-2xl p-5">
+          <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" data-i18n="admin.kpiRestaurants">Restoranlar</p>
+          <p id="kpiRestaurants" class="text-2xl font-extrabold">0</p>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <h3 class="font-bold text-sm text-slate-300" data-i18n="admin.tableTitle">Bütün bronlar</h3>
+          <div class="relative w-full sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            <input id="adminSearchInput" type="text" class="glass-input w-full rounded-lg pl-9 pr-3 py-2 text-xs" data-i18n-placeholder="admin.searchPlaceholder" placeholder="Restoran, masa və ya qonaq axtar...">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-white/10">
+                <th class="pb-2 pr-3" data-i18n="admin.tableRef">Ref</th>
+                <th class="pb-2 pr-3" data-i18n="admin.tableRestaurant">Restoran</th>
+                <th class="pb-2 pr-3" data-i18n="admin.tableTable">Masa</th>
+                <th class="pb-2 pr-3" data-i18n="admin.tableGuest">Qonaq</th>
+                <th class="pb-2 pr-3" data-i18n="admin.tableDate">Tarix / Saat</th>
+                <th class="pb-2 pr-3" data-i18n="admin.tableStatus">Status</th>
+                <th class="pb-2" data-i18n="admin.tableAction">Əməliyyat</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+          <div id="adminEmpty" class="hidden text-center py-10 text-slate-500 text-sm" data-i18n="bookings.empty">Hələ heç bir bronunuz yoxdur.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- =========================================================
+     MODAL: AUTH (LOGIN / REGISTER)
+========================================================== -->
+<div id="authModal" class="modal-overlay">
+  <div class="glass-strong rounded-2xl w-[min(420px,92vw)] p-6">
+    <div class="flex items-start justify-between mb-5">
+      <h2 id="authModalTitle" class="text-lg font-bold" data-i18n="auth.loginTitle">Hesaba Daxil Ol</h2>
+      <button data-close-modal="authModal" class="text-slate-400 hover:text-slate-200">✕</button>
+    </div>
+
+    <div class="flex gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 mb-5">
+      <button id="authTabLogin" class="flex-1 rounded-full px-4 py-1.5 text-sm font-semibold transition bg-brand-500 text-white" data-i18n="auth.tabLogin">Daxil Ol</button>
+      <button id="authTabRegister" class="flex-1 rounded-full px-4 py-1.5 text-sm font-semibold transition text-slate-400" data-i18n="auth.tabRegister">Qeydiyyat</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="auth.email">E-poçt</label>
+        <input id="loginEmail" type="email" required class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="ali@nümunə.az">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="auth.password">Şifrə</label>
+        <input id="loginPassword" type="password" required class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="••••••••">
+      </div>
+      <p id="loginError" class="hidden text-xs text-red-400"></p>
+      <button type="submit" class="btn-primary w-full rounded-xl py-2.5 text-sm" data-i18n="auth.loginBtn">Daxil Ol</button>
+      <p class="text-center text-[11px] text-slate-500" data-i18n="auth.demoHint">Demo: istənilən qeydiyyatdan keçmiş hesabla daxil olun.</p>
+    </form>
+
+    <!-- Register form -->
+    <form id="registerForm" class="space-y-4 hidden">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="auth.name">Ad Soyad</label>
+        <input id="registerName" type="text" required class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="Əli Məmmədov">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="auth.email">E-poçt</label>
+        <input id="registerEmail" type="email" required class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="ali@nümunə.az">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="auth.phone">Telefon</label>
+        <input id="registerPhone" type="tel" required class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="+994 XX XXX XX XX">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="auth.password">Şifrə</label>
+        <input id="registerPassword" type="password" required class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="••••••••">
+      </div>
+      <p id="registerError" class="hidden text-xs text-red-400"></p>
+      <button type="submit" class="btn-primary w-full rounded-xl py-2.5 text-sm" data-i18n="auth.registerBtn">Qeydiyyatdan Keç</button>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: CHECKOUT / PAYMENT
+========================================================== -->
+<div id="checkoutModal" class="modal-overlay">
+  <div class="glass-strong rounded-2xl w-[min(480px,92vw)] p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-start justify-between mb-5">
+      <h2 class="text-lg font-bold" data-i18n="checkout.title">Bronu Təsdiqlə</h2>
+      <button data-close-modal="checkoutModal" class="text-slate-400 hover:text-slate-200">✕</button>
+    </div>
+
+    <div class="glass rounded-xl p-4 mb-5 space-y-2 text-sm">
+      <div class="flex justify-between"><span class="text-slate-500" data-i18n="checkout.restaurant">Restoran</span><span id="coRestaurant" class="font-semibold">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500" data-i18n="checkout.table">Masa</span><span id="coTable" class="font-semibold">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500" data-i18n="checkout.date">Tarix</span><span id="coDate" class="font-semibold">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500" data-i18n="checkout.time">Saat</span><span id="coTime" class="font-semibold">—</span></div>
+      <div class="flex justify-between"><span class="text-slate-500" data-i18n="checkout.guests">Qonaq sayı</span><span id="coGuests" class="font-semibold">—</span></div>
+      <div class="flex justify-between border-t border-white/10 pt-2 mt-2"><span class="text-slate-500" data-i18n="checkout.deposit">Depozit</span><span id="coDeposit" class="font-bold text-brand-400">—</span></div>
+    </div>
+
+    <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2" data-i18n="checkout.paymentMethod">Ödəniş üsulu</p>
+    <div class="grid grid-cols-2 gap-2 mb-5">
+      <button id="payMethodCard" class="pay-method-btn glass-input rounded-xl py-3 text-sm font-semibold flex flex-col items-center gap-1.5" data-method="card">
+        <i class="fa-solid fa-credit-card"></i>
+        <span data-i18n="checkout.cardPayment">Bank Kartı</span>
+      </button>
+      <button id="payMethodVenue" class="pay-method-btn glass-input rounded-xl py-3 text-sm font-semibold flex flex-col items-center gap-1.5" data-method="venue">
+        <i class="fa-solid fa-store"></i>
+        <span data-i18n="checkout.venuePayment">Məkanda Ödəniş</span>
+      </button>
+    </div>
+
+    <div id="cardFields" class="space-y-4 mb-2 hidden">
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="checkout.cardNumber">Kart nömrəsi</label>
+        <input id="cardNumber" type="text" inputmode="numeric" maxlength="19" class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="4127 8800 0000 0000">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="checkout.expiry">Son tarix</label>
+          <input id="cardExpiry" type="text" inputmode="numeric" maxlength="5" class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="MM/YY">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1" data-i18n="checkout.cvv">CVV</label>
+          <input id="cardCvv" type="text" inputmode="numeric" maxlength="3" class="glass-input w-full rounded-lg px-3 py-2.5 text-sm" placeholder="123">
+        </div>
+      </div>
+    </div>
+
+    <p id="checkoutError" class="hidden text-xs text-red-400 mb-3"></p>
+
+    <button id="confirmPaymentBtn" class="btn-primary w-full rounded-xl py-3 text-sm mt-2" data-i18n="checkout.confirmBtn">Bronu Təsdiqlə</button>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: ADMIN PASSCODE
+========================================================== -->
+<div id="adminPasscodeModal" class="modal-overlay">
+  <div class="glass-strong rounded-2xl w-[min(360px,92vw)] p-6">
+    <div class="flex items-start justify-between mb-4">
+      <h2 class="text-lg font-bold" data-i18n="admin.passcodeTitle">Admin Girişi</h2>
+      <button data-close-modal="adminPasscodeModal" class="text-slate-400 hover:text-slate-200">✕</button>
+    </div>
+    <p class="text-sm text-slate-400 mb-4" data-i18n="admin.passcodePrompt">Davam etmək üçün admin kodunu daxil edin.</p>
+    <input id="adminPasscodeInput" type="password" class="glass-input w-full rounded-lg px-3 py-2.5 text-sm mb-3" data-i18n-placeholder="admin.passcodePlaceholder" placeholder="Passcode">
+    <p id="adminPasscodeError" class="hidden text-xs text-red-400 mb-3" data-i18n="toast.adminDenied">Yanlış kod. Yenidən cəhd edin.</p>
+    <button id="adminUnlockBtn" class="btn-primary w-full rounded-xl py-2.5 text-sm" data-i18n="admin.unlockBtn">Daxil Ol</button>
+  </div>
+</div>
+
+<script>
+/* =============================================================
+   SEATIFY — SINGLE-FILE DEMO APPLICATION
+   All logic lives here: i18n, mock data, state, rendering,
+   floor-plan engine, auth, checkout, bookings, admin, toasts.
+============================================================= */
+
+/* ---------------------------------------------------------
+   1. TRANSLATIONS
+--------------------------------------------------------- */
+const TRANSLATIONS = {
+  az: {
+    'nav.catalog': 'Restoranlar', 'nav.floorplan': 'Masa Xəritəsi', 'nav.bookings': 'Bronlarım', 'nav.admin': 'Admin Panel',
+    'auth.signIn': 'Daxil Ol', 'auth.loginTitle': 'Hesaba Daxil Ol', 'auth.registerTitle': 'Qeydiyyatdan Keç',
+    'auth.tabLogin': 'Daxil Ol', 'auth.tabRegister': 'Qeydiyyat',
+    'auth.name': 'Ad Soyad', 'auth.email': 'E-poçt', 'auth.phone': 'Telefon', 'auth.password': 'Şifrə',
+    'auth.loginBtn': 'Daxil Ol', 'auth.registerBtn': 'Qeydiyyatdan Keç', 'auth.logout': 'Çıxış',
+    'auth.demoHint': 'Demo: istənilən qeydiyyatdan keçmiş hesabla daxil olun.',
+    'auth.errInvalidEmail': 'Düzgün e-poçt daxil edin.',
+    'auth.errInvalidPhone': 'Telefon formatı: +994 XX XXX XX XX',
+    'auth.errShortPassword': 'Şifrə ən azı 4 simvol olmalıdır.',
+    'auth.errUserExists': 'Bu e-poçt ilə hesab artıq mövcuddur.',
+    'auth.errNoUser': 'E-poçt və ya şifrə yanlışdır.',
+    'catalog.heroTitle': 'Bakının ən yaxşı masalarını kəşf et',
+    'catalog.heroSubtitle': 'Sevimli restoranını seç, real vaxt masa xəritəsindən yerini bron et.',
+    'catalog.searchPlaceholder': 'Restoran, mətbəx və ya ünvan axtar...',
+    'catalog.cuisineLabel': 'Mətbəx:', 'catalog.cuisineAll': 'Hamısı', 'catalog.cuisineSteakhouse': 'Steakhouse',
+    'catalog.cuisineMilli': 'Milli', 'catalog.cuisineItalyan': 'İtalyan', 'catalog.cuisineAsiya': 'Asiya',
+    'catalog.zoneLabel': 'Zona:', 'catalog.zoneAll': 'Hamısı', 'catalog.zoneTeras': 'Teras', 'catalog.zoneVip': 'VIP', 'catalog.zoneMain': 'Əsas Zal',
+    'catalog.minDeposit': 'min. depozit', 'catalog.selectTable': 'Masa Seç', 'catalog.noResults': 'Nəticə tapılmadı. Filtrləri dəyişin.',
+    'floorplan.date': 'Tarix', 'floorplan.time': 'Saat', 'floorplan.guests': 'Qonaq sayı', 'floorplan.guestsAny': 'Fərq etməz',
+    'floorplan.zone': 'Zona', 'floorplan.zoneAllOpt': 'Bütün zonalar',
+    'floorplan.legendAvailable': 'Boş', 'floorplan.legendHeld': 'Saxlanılıb', 'floorplan.legendBooked': 'Dolu', 'floorplan.legendSelected': 'Seçilmiş',
+    'floorplan.selectPrompt': 'Davam etmək üçün bir masa seçin.',
+    'floorplan.tableId': 'Masa', 'floorplan.capacity': 'Tutum', 'floorplan.deposit': 'Depozit', 'floorplan.features': 'Xüsusiyyətlər',
+    'floorplan.specialRequest': 'Xüsusi istək', 'floorplan.specialRequestPlaceholder': 'Məs: pəncərə kənarında masa, doğum günü dekoru...',
+    'floorplan.proceedBtn': 'Bron Etməyə Keç',
+    'floorplan.zoneTeras': 'TERAS ZONASI', 'floorplan.zoneVip': 'VIP ZAL', 'floorplan.zoneMain': 'BAR & ƏSAS ZAL', 'floorplan.barCounter': 'BAR PULTU',
+    'checkout.title': 'Bronu Təsdiqlə', 'checkout.restaurant': 'Restoran', 'checkout.table': 'Masa', 'checkout.date': 'Tarix',
+    'checkout.time': 'Saat', 'checkout.guests': 'Qonaq sayı', 'checkout.deposit': 'Depozit', 'checkout.paymentMethod': 'Ödəniş üsulu',
+    'checkout.cardPayment': 'Bank Kartı', 'checkout.venuePayment': 'Məkanda Ödəniş',
+    'checkout.cardNumber': 'Kart nömrəsi', 'checkout.expiry': 'Son tarix', 'checkout.cvv': 'CVV', 'checkout.confirmBtn': 'Bronu Təsdiqlə',
+    'checkout.errCard': 'Zəhmət olmasa kart məlumatlarını düzgün doldurun.',
+    'bookings.title': 'Mənim Bronlarım', 'bookings.empty': 'Hələ heç bir bronunuz yoxdur.',
+    'bookings.ref': 'Ref', 'bookings.guests': 'Qonaq', 'bookings.deposit': 'Ödənilmiş depozit', 'bookings.note': 'Qeyd',
+    'bookings.cancelBtn': 'Bronu Ləğv Et', 'bookings.statusConfirmed': 'Təsdiqləndi',
+    'admin.title': 'Admin Panel', 'admin.passcodeTitle': 'Admin Girişi', 'admin.passcodePrompt': 'Davam etmək üçün admin kodunu daxil edin.',
+    'admin.passcodePlaceholder': 'Passcode', 'admin.unlockBtn': 'Daxil Ol',
+    'admin.kpiTotalReservations': 'Ümumi Bronlar', 'admin.kpiTodayGuests': 'Bugünkü Qonaqlar', 'admin.kpiRevenue': 'Gəlir (AZN)', 'admin.kpiRestaurants': 'Restoranlar',
+    'admin.tableTitle': 'Bütün bronlar', 'admin.searchPlaceholder': 'Restoran, masa və ya qonaq axtar...',
+    'admin.tableRef': 'Ref', 'admin.tableRestaurant': 'Restoran', 'admin.tableTable': 'Masa', 'admin.tableGuest': 'Qonaq',
+    'admin.tableDate': 'Tarix / Saat', 'admin.tableStatus': 'Status', 'admin.tableAction': 'Əməliyyat',
+    'toast.loginRequired': 'Zəhmət olmasa əvvəlcə hesaba daxil olun.',
+    'toast.loginSuccess': 'Xoş gəldiniz, {name}!', 'toast.registerSuccess': 'Qeydiyyat uğurludur! Xoş gəldiniz, {name}!',
+    'toast.logoutSuccess': 'Uğurla çıxış etdiniz.', 'toast.bookingSuccess': 'Bron uğurla təsdiqləndi!', 'toast.bookingCancelled': 'Bron ləğv edildi.',
+    'toast.adminUnlocked': 'Admin panelinə xoş gəldiniz.', 'toast.adminDenied': 'Yanlış kod. Yenidən cəhd edin.',
+    'toast.selectTableFirst': 'Zəhmət olmasa əvvəlcə bir masa seçin.', 'toast.tableUnavailable': 'Bu masa artıq mövcud deyil.',
+    'toast.emailExists': 'Bu e-poçt ilə hesab artıq mövcuddur.',
+  },
+  en: {
+    'nav.catalog': 'Restaurants', 'nav.floorplan': 'Table Map', 'nav.bookings': 'My Bookings', 'nav.admin': 'Admin Panel',
+    'auth.signIn': 'Sign In', 'auth.loginTitle': 'Sign In to Your Account', 'auth.registerTitle': 'Create an Account',
+    'auth.tabLogin': 'Sign In', 'auth.tabRegister': 'Register',
+    'auth.name': 'Full Name', 'auth.email': 'Email', 'auth.phone': 'Phone', 'auth.password': 'Password',
+    'auth.loginBtn': 'Sign In', 'auth.registerBtn': 'Create Account', 'auth.logout': 'Log Out',
+    'auth.demoHint': 'Demo: sign in with any account you registered.',
+    'auth.errInvalidEmail': 'Enter a valid email address.',
+    'auth.errInvalidPhone': 'Phone format: +994 XX XXX XX XX',
+    'auth.errShortPassword': 'Password must be at least 4 characters.',
+    'auth.errUserExists': 'An account with this email already exists.',
+    'auth.errNoUser': 'Incorrect email or password.',
+    'catalog.heroTitle': "Discover Baku's best tables",
+    'catalog.heroSubtitle': 'Pick your favorite restaurant and reserve your seat from a real-time floor plan.',
+    'catalog.searchPlaceholder': 'Search restaurant, cuisine, or address...',
+    'catalog.cuisineLabel': 'Cuisine:', 'catalog.cuisineAll': 'All', 'catalog.cuisineSteakhouse': 'Steakhouse',
+    'catalog.cuisineMilli': 'National', 'catalog.cuisineItalyan': 'Italian', 'catalog.cuisineAsiya': 'Asian',
+    'catalog.zoneLabel': 'Zone:', 'catalog.zoneAll': 'All', 'catalog.zoneTeras': 'Terrace', 'catalog.zoneVip': 'VIP', 'catalog.zoneMain': 'Main Hall',
+    'catalog.minDeposit': 'min. deposit', 'catalog.selectTable': 'Select Table', 'catalog.noResults': 'No results found. Try different filters.',
+    'floorplan.date': 'Date', 'floorplan.time': 'Time', 'floorplan.guests': 'Guests', 'floorplan.guestsAny': 'Any',
+    'floorplan.zone': 'Zone', 'floorplan.zoneAllOpt': 'All zones',
+    'floorplan.legendAvailable': 'Available', 'floorplan.legendHeld': 'Held', 'floorplan.legendBooked': 'Booked', 'floorplan.legendSelected': 'Selected',
+    'floorplan.selectPrompt': 'Select a table to continue.',
+    'floorplan.tableId': 'Table', 'floorplan.capacity': 'Capacity', 'floorplan.deposit': 'Deposit', 'floorplan.features': 'Features',
+    'floorplan.specialRequest': 'Special request', 'floorplan.specialRequestPlaceholder': 'E.g. window seat, birthday decoration...',
+    'floorplan.proceedBtn': 'Proceed to Booking',
+    'floorplan.zoneTeras': 'TERRACE ZONE', 'floorplan.zoneVip': 'VIP HALL', 'floorplan.zoneMain': 'BAR & MAIN HALL', 'floorplan.barCounter': 'BAR COUNTER',
+    'checkout.title': 'Confirm Booking', 'checkout.restaurant': 'Restaurant', 'checkout.table': 'Table', 'checkout.date': 'Date',
+    'checkout.time': 'Time', 'checkout.guests': 'Guests', 'checkout.deposit': 'Deposit', 'checkout.paymentMethod': 'Payment method',
+    'checkout.cardPayment': 'Credit Card', 'checkout.venuePayment': 'Pay at Venue',
+    'checkout.cardNumber': 'Card number', 'checkout.expiry': 'Expiry', 'checkout.cvv': 'CVV', 'checkout.confirmBtn': 'Confirm Booking',
+    'checkout.errCard': 'Please fill in valid card details.',
+    'bookings.title': 'My Bookings', 'bookings.empty': 'You have no bookings yet.',
+    'bookings.ref': 'Ref', 'bookings.guests': 'Guests', 'bookings.deposit': 'Paid deposit', 'bookings.note': 'Note',
+    'bookings.cancelBtn': 'Cancel Booking', 'bookings.statusConfirmed': 'Confirmed',
+    'admin.title': 'Admin Panel', 'admin.passcodeTitle': 'Admin Access', 'admin.passcodePrompt': 'Enter the admin passcode to continue.',
+    'admin.passcodePlaceholder': 'Passcode', 'admin.unlockBtn': 'Unlock',
+    'admin.kpiTotalReservations': 'Total Reservations', 'admin.kpiTodayGuests': "Today's Guests", 'admin.kpiRevenue': 'Revenue (AZN)', 'admin.kpiRestaurants': 'Restaurants',
+    'admin.tableTitle': 'All bookings', 'admin.searchPlaceholder': 'Search restaurant, table, or guest...',
+    'admin.tableRef': 'Ref', 'admin.tableRestaurant': 'Restaurant', 'admin.tableTable': 'Table', 'admin.tableGuest': 'Guest',
+    'admin.tableDate': 'Date / Time', 'admin.tableStatus': 'Status', 'admin.tableAction': 'Action',
+    'toast.loginRequired': 'Please sign in first.',
+    'toast.loginSuccess': 'Welcome back, {name}!', 'toast.registerSuccess': 'Registration successful! Welcome, {name}!',
+    'toast.logoutSuccess': 'You have been logged out.', 'toast.bookingSuccess': 'Booking confirmed successfully!', 'toast.bookingCancelled': 'Booking cancelled.',
+    'toast.adminUnlocked': 'Welcome to the admin panel.', 'toast.adminDenied': 'Incorrect code. Try again.',
+    'toast.selectTableFirst': 'Please select a table first.', 'toast.tableUnavailable': 'This table is no longer available.',
+    'toast.emailExists': 'An account with this email already exists.',
+  },
+};
+
+/* ---------------------------------------------------------
+   2. MOCK DATA
+--------------------------------------------------------- */
+const RESTAURANTS = [
+  { id: 'r1', name: 'Mangal Steak House', cuisine: 'steakhouse', address: 'Nizami küç. 203, Bakı', rating: 4.9, minDeposit: 40, zones: ['teras', 'vip', 'main'], cover: 'https://picsum.photos/seed/mangal/640/420' },
+  { id: 'r2', name: 'Şirvanşah', cuisine: 'milli', address: 'İçərişəhər, Qala küç. 12, Bakı', rating: 4.8, minDeposit: 25, zones: ['teras', 'main'], cover: 'https://picsum.photos/seed/shirvanshah/640/420' },
+  { id: 'r3', name: 'Çinar', cuisine: 'milli', address: 'Neftçilər prospekti 45, Bakı', rating: 4.6, minDeposit: 20, zones: ['vip', 'main'], cover: 'https://picsum.photos/seed/chinar/640/420' },
+  { id: 'r4', name: 'Sakura Sushi Bar', cuisine: 'asiya', address: 'Xəzər sahili, Badamdar, Bakı', rating: 4.7, minDeposit: 30, zones: ['teras', 'main'], cover: 'https://picsum.photos/seed/sakura/640/420' },
+  { id: 'r5', name: 'Bella Vita', cuisine: 'italyan', address: 'Füzuli küç. 8, Bakı', rating: 4.5, minDeposit: 22, zones: ['main', 'vip'], cover: 'https://picsum.photos/seed/bellavita/640/420' },
+  { id: 'r6', name: 'Qala Meyxanası', cuisine: 'milli', address: 'İçərişəhər, Bakı', rating: 4.9, minDeposit: 35, zones: ['teras', 'vip', 'main'], cover: 'https://picsum.photos/seed/qala/640/420' },
+];
+
+// Shared floor-plan layout template reused (with per-restaurant deposit scaling) by every
+// restaurant — canvas is 1000x640 units, scaled responsively by the browser via % positioning.
+const FLOORPLAN_ZONES = [
+  { key: 'teras', labelKey: 'floorplan.zoneTeras', left: '2%', top: '4%', width: '30%', height: '92%' },
+  { key: 'vip', labelKey: 'floorplan.zoneVip', left: '34%', top: '4%', width: '28%', height: '44%' },
+  { key: 'main', labelKey: 'floorplan.zoneMain', left: '34%', top: '52%', width: '64%', height: '44%' },
+];
+
+const BAR_COUNTER = { left: '64%', top: '6%', width: '32%', height: '10%' };
+
+const TABLE_TEMPLATE = [
+  // --- Teras zone: 2-seater round tables ---
+  { id: 'T1', zone: 'teras', shape: 'round', capacity: 2, left: '8%', top: '12%', size: 70 },
+  { id: 'T2', zone: 'teras', shape: 'round', capacity: 2, left: '8%', top: '38%', size: 70 },
+  { id: 'T3', zone: 'teras', shape: 'round', capacity: 2, left: '8%', top: '64%', size: 70 },
+  { id: 'T4', zone: 'teras', shape: 'round', capacity: 4, left: '20%', top: '78%', size: 90 },
+  // --- VIP zone: larger rectangular tables ---
+  { id: 'T5', zone: 'vip', shape: 'rect', capacity: 6, left: '40%', top: '10%', width: 150, height: 80 },
+  { id: 'T6', zone: 'vip', shape: 'rect', capacity: 8, left: '40%', top: '30%', width: 170, height: 90 },
+  { id: 'T7', zone: 'vip', shape: 'square', capacity: 4, left: '48%', top: '10%', size: 90 },
+  // --- Main hall / bar zone: mixed round & square ---
+  { id: 'T8', zone: 'main', shape: 'square', capacity: 4, left: '40%', top: '58%', size: 90 },
+  { id: 'T9', zone: 'main', shape: 'round', capacity: 2, left: '52%', top: '58%', size: 70 },
+  { id: 'T10', zone: 'main', shape: 'rect', capacity: 6, left: '60%', top: '75%', width: 150, height: 80 },
+  { id: 'T11', zone: 'main', shape: 'square', capacity: 4, left: '80%', top: '58%', size: 90 },
+  { id: 'T12', zone: 'main', shape: 'round', capacity: 2, left: '80%', top: '78%', size: 70 },
+];
+
+const TABLE_FEATURES = {
+  teras: ['floorplan.featureOutdoor', 'floorplan.featureView'],
+  vip: ['floorplan.featurePrivate', 'floorplan.featureQuiet'],
+  main: ['floorplan.featureLively', 'floorplan.featureNearBar'],
+};
+// Feature label text (kept outside TRANSLATIONS keys map above to keep it short — resolved directly here).
+const FEATURE_LABELS = {
+  az: { outdoor: 'Açıq hava', view: 'Mənzərəli', private: 'Şəxsi', quiet: 'Sakit', lively: 'Canlı', nearBar: 'Bara yaxın' },
+  en: { outdoor: 'Outdoor', view: 'Scenic view', private: 'Private', quiet: 'Quiet', lively: 'Lively', nearBar: 'Near the bar' },
+};
+
+/* ---------------------------------------------------------
+   3. STATE
+--------------------------------------------------------- */
+const STORAGE_KEY = 'seatify.demo.state.v1';
+
+function loadPersistedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+const persisted = loadPersistedState();
+
+const state = {
+  lang: persisted?.lang || 'az',
+  users: persisted?.users || [],           // {name, email, phone, password}
+  user: persisted?.user || null,           // currently logged-in user
+  bookings: persisted?.bookings || [],     // confirmed reservations
+  reservations: persisted?.reservations || {}, // key -> {status: 'held'|'booked', reservationId}
+  isAdminUnlocked: false,
+  currentView: 'catalog',
+  filters: { search: '', cuisine: 'all', zone: 'all' },
+  fp: { restaurantId: null, selectedTableId: null, specialRequest: '' },
+  checkoutMethod: 'card',
+};
+
+function persistState() {
+  // Storage can be unavailable (opaque file:// origins, private browsing, disabled cookies) —
+  // degrade to in-memory-only state for that page load instead of crashing the whole app.
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      lang: state.lang, users: state.users, user: state.user,
+      bookings: state.bookings, reservations: state.reservations,
+    }));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Seed a couple of held/booked demo tables the first time the app ever runs, so every
+// restaurant's floor plan shows all four status colors right away.
+if (!persisted) {
+  const today = new Date().toISOString().slice(0, 10);
+  RESTAURANTS.forEach((r, idx) => {
+    state.reservations[`${r.id}|T3|${today}|20:00-22:00`] = { status: 'held' };
+    if (idx % 2 === 0) {
+      state.reservations[`${r.id}|T6|${today}|20:00-22:00`] = { status: 'booked' };
+    }
+  });
+  persistState();
+}
+
+/* ---------------------------------------------------------
+   4. i18n HELPERS
+--------------------------------------------------------- */
+function t(key, vars) {
+  let str = TRANSLATIONS[state.lang][key] ?? key;
+  if (vars) {
+    Object.entries(vars).forEach(([k, v]) => { str = str.replace(`{${k}}`, v); });
+  }
+  return str;
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+  });
+  document.documentElement.lang = state.lang;
+}
+
+function toggleLang() {
+  state.lang = state.lang === 'az' ? 'en' : 'az';
+  persistState();
+  applyTranslations();
+  renderAll();
+}
+
+/* ---------------------------------------------------------
+   5. UTILITIES
+--------------------------------------------------------- */
+function formatAZN(amount) { return `${amount} ₼`; }
+
+function generateId(prefix) {
+  return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function initials(name) {
+  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
+}
+
+function cuisineLabel(key) {
+  return t(`catalog.cuisine${key.charAt(0).toUpperCase()}${key.slice(1)}`);
+}
+
+function zoneLabel(key) {
+  const map = { teras: 'catalog.zoneTeras', vip: 'catalog.zoneVip', main: 'catalog.zoneMain' };
+  return t(map[key]);
+}
+
+function reservationKey(restaurantId, tableId, date, timeSlot) {
+  return `${restaurantId}|${tableId}|${date}|${timeSlot}`;
+}
+
+/* ---------------------------------------------------------
+   6. TOASTS
+--------------------------------------------------------- */
+const TOAST_ICONS = {
+  success: 'fa-circle-check text-emerald-400',
+  error: 'fa-circle-exclamation text-red-400',
+  info: 'fa-circle-info text-sky-400',
+};
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast glass-strong rounded-xl px-4 py-3 flex items-start gap-3 shadow-lg';
+  toast.innerHTML = `
+    <i class="fa-solid ${TOAST_ICONS[type] || TOAST_ICONS.info} mt-0.5"></i>
+    <p class="text-sm text-slate-200 flex-1">${message}</p>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('closing');
+    setTimeout(() => toast.remove(), 260);
+  }, 3600);
+}
+
+/* ---------------------------------------------------------
+   7. NAVIGATION / VIEW SWITCHING
+--------------------------------------------------------- */
+function showView(viewName) {
+  if (viewName === 'bookings' && !state.user) {
+    showToast(t('toast.loginRequired'), 'error');
+    openModal('authModal');
+    switchAuthTab('login');
+    return;
+  }
+  if (viewName === 'admin' && !state.isAdminUnlocked) {
+    openModal('adminPasscodeModal');
+    return;
+  }
+
+  state.currentView = viewName;
+  document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+  document.getElementById(`view-${viewName}`).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-nav') === viewName);
+  });
+
+  if (viewName === 'bookings') renderBookings();
+  if (viewName === 'admin') renderAdminPanel();
+  if (viewName === 'floorplan' && !state.fp.restaurantId) {
+    // No restaurant chosen yet — send the user back to the catalog to pick one.
+    state.currentView = 'catalog';
+    document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
+    document.getElementById('view-catalog').classList.add('active');
+    document.querySelectorAll('.nav-tab').forEach((btn) => btn.classList.toggle('active', btn.getAttribute('data-nav') === 'catalog'));
+  }
+}
+
+document.querySelectorAll('[data-nav]').forEach((btn) => {
+  btn.addEventListener('click', () => showView(btn.getAttribute('data-nav')));
+});
+
+/* ---------------------------------------------------------
+   8. MODAL HELPERS
+--------------------------------------------------------- */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+  btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close-modal')));
+});
+document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+/* ---------------------------------------------------------
+   9. HEADER / AUTH AREA RENDERING
+--------------------------------------------------------- */
+function renderAuthArea() {
+  const area = document.getElementById('authArea');
+  if (!state.user) {
+    area.innerHTML = `<button id="signInBtn" class="btn-primary px-4 py-2 rounded-lg text-sm">${t('auth.signIn')}</button>`;
+    document.getElementById('signInBtn').addEventListener('click', () => { openModal('authModal'); switchAuthTab('login'); });
+  } else {
+    area.innerHTML = `
+      <div class="flex items-center gap-2.5">
+        <div class="avatar-badge">${initials(state.user.name)}</div>
+        <span class="hidden sm:block text-sm font-semibold">${state.user.name}</span>
+        <button id="logoutBtn" class="btn-ghost w-8 h-8 rounded-lg flex items-center justify-center" title="${t('auth.logout')}">
+          <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+        </button>
+      </div>`;
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+  }
+}
+
+document.getElementById('langToggle').addEventListener('click', toggleLang);
+
+/* ---------------------------------------------------------
+   10. AUTH LOGIC
+--------------------------------------------------------- */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const AZ_PHONE_PATTERN = /^\+994 \d{2} \d{3} \d{2} \d{2}$/;
+
+function switchAuthTab(mode) {
+  const isLogin = mode === 'login';
+  document.getElementById('authModalTitle').textContent = t(isLogin ? 'auth.loginTitle' : 'auth.registerTitle');
+  document.getElementById('authTabLogin').classList.toggle('bg-brand-500', isLogin);
+  document.getElementById('authTabLogin').classList.toggle('text-white', isLogin);
+  document.getElementById('authTabLogin').classList.toggle('text-slate-400', !isLogin);
+  document.getElementById('authTabRegister').classList.toggle('bg-brand-500', !isLogin);
+  document.getElementById('authTabRegister').classList.toggle('text-white', !isLogin);
+  document.getElementById('authTabRegister').classList.toggle('text-slate-400', isLogin);
+  document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+  document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+  document.getElementById('loginError').classList.add('hidden');
+  document.getElementById('registerError').classList.add('hidden');
+}
+document.getElementById('authTabLogin').addEventListener('click', () => switchAuthTab('login'));
+document.getElementById('authTabRegister').addEventListener('click', () => switchAuthTab('register'));
+
+// Azerbaijan phone mask: +994 XX XXX XX XX
+document.getElementById('registerPhone').addEventListener('input', (e) => {
+  let digits = e.target.value.replace(/\D/g, '');
+  if (digits.startsWith('994')) digits = digits.slice(3);
+  digits = digits.slice(0, 9);
+  let formatted = '+994';
+  if (digits.length > 0) formatted += ' ' + digits.slice(0, 2);
+  if (digits.length > 2) formatted += ' ' + digits.slice(2, 5);
+  if (digits.length > 5) formatted += ' ' + digits.slice(5, 7);
+  if (digits.length > 7) formatted += ' ' + digits.slice(7, 9);
+  e.target.value = formatted;
+});
+document.getElementById('registerPhone').addEventListener('focus', (e) => {
+  if (!e.target.value) e.target.value = '+994 ';
+});
+
+function showAuthError(formId, message) {
+  const el = document.getElementById(formId);
+  el.textContent = message;
+  el.classList.remove('hidden');
+}
+
+document.getElementById('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+
+  if (!EMAIL_PATTERN.test(email)) return showAuthError('loginError', t('auth.errInvalidEmail'));
+  if (!password || password.length < 4) return showAuthError('loginError', t('auth.errShortPassword'));
+
+  const existing = state.users.find((u) => u.email === email && u.password === password);
+  if (!existing) return showAuthError('loginError', t('auth.errNoUser'));
+
+  state.user = { name: existing.name, email: existing.email, phone: existing.phone };
+  persistState();
+  renderAuthArea();
+  closeModal('authModal');
+  e.target.reset();
+  showToast(t('toast.loginSuccess', { name: state.user.name }), 'success');
+});
+
+document.getElementById('registerForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('registerName').value.trim();
+  const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+  const phone = document.getElementById('registerPhone').value.trim();
+  const password = document.getElementById('registerPassword').value;
+
+  if (!name) return showAuthError('registerError', t('auth.name') + ' ?');
+  if (!EMAIL_PATTERN.test(email)) return showAuthError('registerError', t('auth.errInvalidEmail'));
+  if (!AZ_PHONE_PATTERN.test(phone)) return showAuthError('registerError', t('auth.errInvalidPhone'));
+  if (!password || password.length < 4) return showAuthError('registerError', t('auth.errShortPassword'));
+  if (state.users.some((u) => u.email === email)) return showAuthError('registerError', t('auth.errUserExists'));
+
+  const newUser = { name, email, phone, password };
+  state.users.push(newUser);
+  state.user = { name, email, phone };
+  persistState();
+  renderAuthArea();
+  closeModal('authModal');
+  e.target.reset();
+  showToast(t('toast.registerSuccess', { name }), 'success');
+});
+
+function logout() {
+  state.user = null;
+  persistState();
+  renderAuthArea();
+  showToast(t('toast.logoutSuccess'), 'info');
+  if (state.currentView === 'bookings') showView('catalog');
+}
+
+/* ---------------------------------------------------------
+   11. CATALOG RENDERING
+--------------------------------------------------------- */
+function renderRestaurantCard(r) {
+  return `
+    <div class="glass rounded-2xl overflow-hidden card-hover flex flex-col">
+      <div class="h-40 bg-cover bg-center" style="background-image:url('${r.cover}')"></div>
+      <div class="p-5 flex flex-col flex-1">
+        <div class="flex items-start justify-between gap-2 mb-1">
+          <h3 class="font-bold text-base leading-snug">${r.name}</h3>
+          <span class="text-xs font-bold text-amber-400 shrink-0 flex items-center gap-1"><i class="fa-solid fa-star"></i>${r.rating.toFixed(1)}</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-3">${r.address}</p>
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/25">${cuisineLabel(r.cuisine)}</span>
+          <span class="text-[11px] text-slate-500">${formatAZN(r.minDeposit)} ${t('catalog.minDeposit')}</span>
+        </div>
+        <button class="btn-primary mt-auto w-full rounded-xl py-2.5 text-sm select-table-btn" data-restaurant-id="${r.id}">
+          ${t('catalog.selectTable')}
+        </button>
+      </div>
+    </div>`;
+}
+
+function renderCatalog() {
+  const grid = document.getElementById('restaurantGrid');
+  const empty = document.getElementById('catalogEmpty');
+  const { search, cuisine, zone } = state.filters;
+
+  const filtered = RESTAURANTS.filter((r) => {
+    const matchesSearch = !search ||
+      r.name.toLowerCase().includes(search) ||
+      r.address.toLowerCase().includes(search) ||
+      cuisineLabel(r.cuisine).toLowerCase().includes(search);
+    const matchesCuisine = cuisine === 'all' || r.cuisine === cuisine;
+    const matchesZone = zone === 'all' || r.zones.includes(zone);
+    return matchesSearch && matchesCuisine && matchesZone;
+  });
+
+  grid.innerHTML = filtered.map(renderRestaurantCard).join('');
+  grid.classList.toggle('hidden', filtered.length === 0);
+  empty.classList.toggle('hidden', filtered.length > 0);
+
+  grid.querySelectorAll('.select-table-btn').forEach((btn) => {
+    btn.addEventListener('click', () => openFloorPlan(btn.getAttribute('data-restaurant-id')));
+  });
+}
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  state.filters.search = e.target.value.trim().toLowerCase();
+  renderCatalog();
+});
+document.querySelectorAll('[data-cuisine]').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('[data-cuisine]').forEach((c) => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.filters.cuisine = chip.getAttribute('data-cuisine');
+    renderCatalog();
+  });
+});
+document.querySelectorAll('[data-zone]').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('[data-zone]').forEach((c) => c.classList.remove('active'));
+    chip.classList.add('active');
+    state.filters.zone = chip.getAttribute('data-zone');
+    renderCatalog();
+  });
+});
+
+/* ---------------------------------------------------------
+   12. FLOOR PLAN ENGINE
+--------------------------------------------------------- */
+function openFloorPlan(restaurantId) {
+  state.fp.restaurantId = restaurantId;
+  state.fp.selectedTableId = null;
+  state.fp.specialRequest = '';
+  showView('floorplan');
+  renderFloorPlanHeader();
+  renderFloorPlan();
+  renderSidebar();
+}
+
+document.getElementById('fpBackBtn').addEventListener('click', () => showView('catalog'));
+
+function renderFloorPlanHeader() {
+  const r = RESTAURANTS.find((x) => x.id === state.fp.restaurantId);
+  document.getElementById('fpRestaurantName').textContent = r ? r.name : '—';
+  document.getElementById('fpRestaurantAddress').textContent = r ? r.address : '';
+}
+
+// Computes chair positions (in px, relative to the table's own box) around its perimeter.
+function computeChairPositions(shape, capacity, width, height) {
+  const positions = [];
+  const gap = 16; // distance chairs float outside the table edge
+
+  if (shape === 'round') {
+    const radius = width / 2 + gap;
+    for (let i = 0; i < capacity; i++) {
+      const angle = (Math.PI * 2 * i) / capacity - Math.PI / 2;
+      positions.push({
+        x: width / 2 + radius * Math.cos(angle) - 6,
+        y: height / 2 + radius * Math.sin(angle) - 6,
+      });
+    }
+    return positions;
+  }
+
+  // Square / rectangular tables: distribute chairs across top/bottom/left/right sides.
+  const sideCounts = { top: 0, bottom: 0, left: 0, right: 0 };
+  if (capacity === 2) { sideCounts.top = 1; sideCounts.bottom = 1; }
+  else if (capacity === 4) { sideCounts.top = 1; sideCounts.bottom = 1; sideCounts.left = 1; sideCounts.right = 1; }
+  else if (capacity === 6) { sideCounts.top = 2; sideCounts.bottom = 2; sideCounts.left = 1; sideCounts.right = 1; }
+  else { sideCounts.top = 3; sideCounts.bottom = 3; sideCounts.left = 1; sideCounts.right = 1; } // 8-seater
+
+  const placeAlong = (count, axisLength) => {
+    const spots = [];
+    for (let i = 0; i < count; i++) spots.push(((i + 1) / (count + 1)) * axisLength);
+    return spots;
+  };
+
+  placeAlong(sideCounts.top, width).forEach((x) => positions.push({ x: x - 6, y: -gap }));
+  placeAlong(sideCounts.bottom, width).forEach((x) => positions.push({ x: x - 6, y: height + gap - 12 }));
+  placeAlong(sideCounts.left, height).forEach((y) => positions.push({ x: -gap, y: y - 6 }));
+  placeAlong(sideCounts.right, height).forEach((y) => positions.push({ x: width + gap - 12, y: y - 6 }));
+
+  return positions;
+}
+
+function getTableStatus(restaurantId, table, date, timeSlot) {
+  if (state.fp.selectedTableId === table.id) return 'selected';
+  const key = reservationKey(restaurantId, table.id, date, timeSlot);
+  const reservation = state.reservations[key];
+  return reservation ? reservation.status : 'available';
+}
+
+function renderFloorPlan() {
+  const canvas = document.getElementById('fpCanvas');
+  canvas.innerHTML = '';
+  const restaurantId = state.fp.restaurantId;
+  const date = document.getElementById('fpDate').value;
+  const timeSlot = document.getElementById('fpTimeSlot').value;
+  const guestFilter = parseInt(document.getElementById('fpGuests').value, 10);
+  const zoneFilter = document.getElementById('fpZone').value;
+
+  // Zones (decorative background regions)
+  FLOORPLAN_ZONES.forEach((z) => {
+    const zoneEl = document.createElement('div');
+    zoneEl.className = 'fp-zone';
+    zoneEl.style.left = z.left; zoneEl.style.top = z.top; zoneEl.style.width = z.width; zoneEl.style.height = z.height;
+    zoneEl.innerHTML = `<span class="fp-zone-label">${t(z.labelKey)}</span>`;
+    canvas.appendChild(zoneEl);
+  });
+
+  // Bar counter (decorative object)
+  const bar = document.createElement('div');
+  bar.className = 'fp-bar';
+  bar.style.left = BAR_COUNTER.left; bar.style.top = BAR_COUNTER.top;
+  bar.style.width = BAR_COUNTER.width; bar.style.height = BAR_COUNTER.height;
+  bar.innerHTML = `<i class="fa-solid fa-martini-glass mr-2"></i>${t('floorplan.barCounter')}`;
+  canvas.appendChild(bar);
+
+  // Tables + chairs
+  TABLE_TEMPLATE.forEach((table) => {
+    const width = table.width || table.size;
+    const height = table.height || table.size;
+    const status = getTableStatus(restaurantId, table, date, timeSlot);
+
+    const hiddenByZone = zoneFilter !== 'all' && table.zone !== zoneFilter;
+    const hiddenByGuests = guestFilter > 0 && table.capacity < guestFilter;
+
+    const tableEl = document.createElement('div');
+    tableEl.className = `fp-table shape-${table.shape} status-${status}${hiddenByZone || hiddenByGuests ? ' fp-hidden' : ''}`;
+    tableEl.style.left = table.left;
+    tableEl.style.top = table.top;
+    tableEl.style.width = `${width}px`;
+    tableEl.style.height = `${height}px`;
+    tableEl.dataset.tableId = table.id;
+    tableEl.innerHTML = `<span>${table.id}</span>`;
+
+    computeChairPositions(table.shape, table.capacity, width, height).forEach((pos) => {
+      const chair = document.createElement('div');
+      chair.className = 'chair';
+      chair.style.left = `${pos.x}px`;
+      chair.style.top = `${pos.y}px`;
+      tableEl.appendChild(chair);
+    });
+
+    if (status === 'available' || status === 'selected') {
+      tableEl.addEventListener('click', () => selectTable(table.id));
+    }
+
+    canvas.appendChild(tableEl);
+  });
+}
+
+function selectTable(tableId) {
+  const restaurantId = state.fp.restaurantId;
+  const date = document.getElementById('fpDate').value;
+  const timeSlot = document.getElementById('fpTimeSlot').value;
+  const key = reservationKey(restaurantId, tableId, date, timeSlot);
+  const reservation = state.reservations[key];
+
+  if (reservation && (reservation.status === 'booked' || reservation.status === 'held')) {
+    showToast(t('toast.tableUnavailable'), 'error');
+    return;
+  }
+
+  state.fp.selectedTableId = state.fp.selectedTableId === tableId ? null : tableId;
+  renderFloorPlan();
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const empty = document.getElementById('fpSidebarEmpty');
+  const content = document.getElementById('fpSidebarContent');
+  const tableId = state.fp.selectedTableId;
+
+  if (!tableId) {
+    empty.classList.remove('hidden');
+    content.classList.add('hidden');
+    return;
+  }
+
+  const table = TABLE_TEMPLATE.find((tb) => tb.id === tableId);
+  const restaurant = RESTAURANTS.find((r) => r.id === state.fp.restaurantId);
+
+  empty.classList.add('hidden');
+  content.classList.remove('hidden');
+
+  document.getElementById('sbTableId').textContent = table.id;
+  document.getElementById('sbZoneBadge').textContent = zoneLabel(table.zone);
+  document.getElementById('sbCapacity').textContent = `${table.capacity}`;
+  document.getElementById('sbDeposit').textContent = formatAZN(restaurant.minDeposit);
+
+  const featureKeys = TABLE_FEATURES[table.zone] || [];
+  const labels = FEATURE_LABELS[state.lang];
+  const featureTextMap = {
+    'floorplan.featureOutdoor': labels.outdoor, 'floorplan.featureView': labels.view,
+    'floorplan.featurePrivate': labels.private, 'floorplan.featureQuiet': labels.quiet,
+    'floorplan.featureLively': labels.lively, 'floorplan.featureNearBar': labels.nearBar,
+  };
+  document.getElementById('sbFeatures').innerHTML = featureKeys.map((fk) =>
+    `<span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">${featureTextMap[fk]}</span>`
+  ).join('');
+
+  document.getElementById('sbSpecialRequest').value = state.fp.specialRequest;
+}
+
+document.getElementById('sbSpecialRequest').addEventListener('input', (e) => {
+  state.fp.specialRequest = e.target.value;
+});
+
+['fpDate', 'fpTimeSlot', 'fpGuests', 'fpZone'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', () => {
+    // Changing date/time can change a table's status out from under the current
+    // selection (e.g. it becomes booked in the new slot) — clear the pick defensively.
+    state.fp.selectedTableId = null;
+    renderFloorPlan();
+    renderSidebar();
+  });
+});
+
+document.getElementById('proceedToCheckoutBtn').addEventListener('click', () => {
+  if (!state.fp.selectedTableId) {
+    showToast(t('toast.selectTableFirst'), 'error');
+    return;
+  }
+  if (!state.user) {
+    showToast(t('toast.loginRequired'), 'error');
+    openModal('authModal');
+    switchAuthTab('login');
+    return;
+  }
+  openCheckout();
+});
+
+/* ---------------------------------------------------------
+   13. CHECKOUT / PAYMENT
+--------------------------------------------------------- */
+function openCheckout() {
+  const restaurant = RESTAURANTS.find((r) => r.id === state.fp.restaurantId);
+  const table = TABLE_TEMPLATE.find((tb) => tb.id === state.fp.selectedTableId);
+  const date = document.getElementById('fpDate').value;
+  const timeSlot = document.getElementById('fpTimeSlot').value;
+  const guests = document.getElementById('fpGuests').value;
+
+  document.getElementById('coRestaurant').textContent = restaurant.name;
+  document.getElementById('coTable').textContent = `${table.id} (${zoneLabel(table.zone)})`;
+  document.getElementById('coDate').textContent = date || '—';
+  document.getElementById('coTime').textContent = timeSlot;
+  document.getElementById('coGuests').textContent = guests === '0' ? table.capacity : guests;
+  document.getElementById('coDeposit').textContent = formatAZN(restaurant.minDeposit);
+
+  selectPaymentMethod('card');
+  document.getElementById('cardNumber').value = '';
+  document.getElementById('cardExpiry').value = '';
+  document.getElementById('cardCvv').value = '';
+  document.getElementById('checkoutError').classList.add('hidden');
+
+  openModal('checkoutModal');
+}
+
+function selectPaymentMethod(method) {
+  state.checkoutMethod = method;
+  document.getElementById('payMethodCard').classList.toggle('border-brand-400', method === 'card');
+  document.getElementById('payMethodCard').classList.toggle('bg-brand-500/10', method === 'card');
+  document.getElementById('payMethodVenue').classList.toggle('border-brand-400', method === 'venue');
+  document.getElementById('payMethodVenue').classList.toggle('bg-brand-500/10', method === 'venue');
+  document.getElementById('cardFields').classList.toggle('hidden', method !== 'card');
+}
+document.getElementById('payMethodCard').addEventListener('click', () => selectPaymentMethod('card'));
+document.getElementById('payMethodVenue').addEventListener('click', () => selectPaymentMethod('venue'));
+
+// Card number mask: 4127 8800 0000 0000
+document.getElementById('cardNumber').addEventListener('input', (e) => {
+  const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
+  e.target.value = digits.replace(/(.{4})/g, '$1 ').trim();
+});
+// Expiry mask: MM/YY
+document.getElementById('cardExpiry').addEventListener('input', (e) => {
+  const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+  e.target.value = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+});
+document.getElementById('cardCvv').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
+});
+
+document.getElementById('confirmPaymentBtn').addEventListener('click', () => {
+  if (state.checkoutMethod === 'card') {
+    const cardDigits = document.getElementById('cardNumber').value.replace(/\D/g, '');
+    const expiry = document.getElementById('cardExpiry').value;
+    const cvv = document.getElementById('cardCvv').value;
+    const validExpiry = /^\d{2}\/\d{2}$/.test(expiry);
+
+    if (cardDigits.length !== 16 || !validExpiry || cvv.length !== 3) {
+      const err = document.getElementById('checkoutError');
+      err.textContent = t('checkout.errCard');
+      err.classList.remove('hidden');
+      return;
+    }
+  }
+
+  confirmBooking();
+});
+
+function confirmBooking() {
+  const restaurant = RESTAURANTS.find((r) => r.id === state.fp.restaurantId);
+  const table = TABLE_TEMPLATE.find((tb) => tb.id === state.fp.selectedTableId);
+  const date = document.getElementById('fpDate').value;
+  const timeSlot = document.getElementById('fpTimeSlot').value;
+  const guests = document.getElementById('fpGuests').value;
+  const key = reservationKey(restaurant.id, table.id, date, timeSlot);
+  const reservationId = generateId('BK');
+
+  state.reservations[key] = { status: 'booked', reservationId };
+
+  state.bookings.unshift({
+    id: reservationId,
+    userEmail: state.user.email,
+    restaurantId: restaurant.id,
+    restaurantName: restaurant.name,
+    tableId: table.id,
+    zone: table.zone,
+    date, timeSlot,
+    guests: guests === '0' ? table.capacity : Number(guests),
+    deposit: restaurant.minDeposit,
+    specialRequest: state.fp.specialRequest,
+    paymentMethod: state.checkoutMethod,
+    status: 'confirmed',
+    createdAt: Date.now(),
+  });
+
+  persistState();
+  closeModal('checkoutModal');
+  showToast(t('toast.bookingSuccess'), 'success');
+
+  state.fp.selectedTableId = null;
+  state.fp.specialRequest = '';
+  showView('bookings');
+}
+
+/* ---------------------------------------------------------
+   14. MY BOOKINGS
+--------------------------------------------------------- */
+function renderBookingCard(b) {
+  return `
+    <div class="glass rounded-2xl p-5">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <p class="text-[11px] text-slate-500 font-bold uppercase tracking-wide">${t('bookings.ref')}</p>
+          <p class="font-mono font-bold text-brand-400">${b.id}</p>
+        </div>
+        <span class="status-badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">${t('bookings.statusConfirmed')}</span>
+      </div>
+      <h3 class="font-bold text-base mb-1">${b.restaurantName}</h3>
+      <p class="text-xs text-slate-500 mb-3">${t('floorplan.tableId')} ${b.tableId} · ${zoneLabel(b.zone)}</p>
+      <dl class="grid grid-cols-2 gap-2 text-sm mb-3">
+        <div><dt class="text-[11px] text-slate-500">${t('checkout.date')}</dt><dd class="font-semibold">${b.date || '—'}</dd></div>
+        <div><dt class="text-[11px] text-slate-500">${t('checkout.time')}</dt><dd class="font-semibold">${b.timeSlot}</dd></div>
+        <div><dt class="text-[11px] text-slate-500">${t('bookings.guests')}</dt><dd class="font-semibold">${b.guests}</dd></div>
+        <div><dt class="text-[11px] text-slate-500">${t('bookings.deposit')}</dt><dd class="font-semibold text-brand-400">${formatAZN(b.deposit)}</dd></div>
+      </dl>
+      ${b.specialRequest ? `<p class="text-xs text-slate-400 mb-3"><span class="font-semibold text-slate-500">${t('bookings.note')}:</span> ${b.specialRequest}</p>` : ''}
+      <button class="btn-ghost w-full rounded-xl py-2.5 text-sm cancel-booking-btn" data-booking-id="${b.id}">
+        <i class="fa-solid fa-xmark mr-1.5"></i>${t('bookings.cancelBtn')}
+      </button>
+    </div>`;
+}
+
+function renderBookings() {
+  const grid = document.getElementById('bookingsGrid');
+  const empty = document.getElementById('bookingsEmpty');
+  const mine = state.bookings.filter((b) => b.userEmail === state.user?.email);
+
+  grid.innerHTML = mine.map(renderBookingCard).join('');
+  grid.classList.toggle('hidden', mine.length === 0);
+  empty.classList.toggle('hidden', mine.length > 0);
+
+  grid.querySelectorAll('.cancel-booking-btn').forEach((btn) => {
+    btn.addEventListener('click', () => cancelBooking(btn.getAttribute('data-booking-id')));
+  });
+}
+
+function cancelBooking(bookingId) {
+  const booking = state.bookings.find((b) => b.id === bookingId);
+  if (!booking) return;
+
+  const key = reservationKey(booking.restaurantId, booking.tableId, booking.date, booking.timeSlot);
+  if (state.reservations[key]?.reservationId === bookingId) {
+    delete state.reservations[key];
+  }
+  state.bookings = state.bookings.filter((b) => b.id !== bookingId);
+
+  persistState();
+  showToast(t('toast.bookingCancelled'), 'info');
+
+  if (state.currentView === 'bookings') renderBookings();
+  if (state.currentView === 'admin') renderAdminPanel();
+  if (state.currentView === 'floorplan') renderFloorPlan();
+}
+
+/* ---------------------------------------------------------
+   15. ADMIN PANEL
+--------------------------------------------------------- */
+const ADMIN_PASSCODE = 'admin123';
+
+document.getElementById('adminUnlockBtn').addEventListener('click', tryAdminUnlock);
+document.getElementById('adminPasscodeInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') tryAdminUnlock();
+});
+
+function tryAdminUnlock() {
+  const input = document.getElementById('adminPasscodeInput');
+  const errorEl = document.getElementById('adminPasscodeError');
+
+  if (input.value === ADMIN_PASSCODE) {
+    state.isAdminUnlocked = true;
+    input.value = '';
+    errorEl.classList.add('hidden');
+    closeModal('adminPasscodeModal');
+    showToast(t('toast.adminUnlocked'), 'success');
+    showView('admin');
+  } else {
+    errorEl.classList.remove('hidden');
+    const modalBox = document.getElementById('adminPasscodeModal').firstElementChild;
+    modalBox.classList.add('shake');
+    setTimeout(() => modalBox.classList.remove('shake'), 500);
+    showToast(t('toast.adminDenied'), 'error');
+  }
+}
+
+function renderAdminPanel() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const search = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
+
+  const filtered = state.bookings.filter((b) => {
+    if (!search) return true;
+    return b.restaurantName.toLowerCase().includes(search) ||
+      b.tableId.toLowerCase().includes(search) ||
+      b.userEmail.toLowerCase().includes(search);
+  });
+
+  document.getElementById('kpiTotalReservations').textContent = state.bookings.length;
+  document.getElementById('kpiTodayGuests').textContent = state.bookings
+    .filter((b) => b.date === todayStr)
+    .reduce((sum, b) => sum + b.guests, 0);
+  document.getElementById('kpiRevenue').textContent = formatAZN(state.bookings.reduce((sum, b) => sum + b.deposit, 0));
+  document.getElementById('kpiRestaurants').textContent = RESTAURANTS.length;
+
+  const tbody = document.getElementById('adminTableBody');
+  const emptyEl = document.getElementById('adminEmpty');
+
+  tbody.innerHTML = filtered.map((b) => `
+    <tr class="border-b border-white/5">
+      <td class="py-2.5 pr-3 font-mono text-brand-400 font-semibold">${b.id}</td>
+      <td class="py-2.5 pr-3">${b.restaurantName}</td>
+      <td class="py-2.5 pr-3">${b.tableId}</td>
+      <td class="py-2.5 pr-3 text-slate-400">${b.userEmail}</td>
+      <td class="py-2.5 pr-3 text-slate-400">${b.date || '—'} · ${b.timeSlot}</td>
+      <td class="py-2.5 pr-3"><span class="status-badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">${t('bookings.statusConfirmed')}</span></td>
+      <td class="py-2.5">
+        <button class="btn-ghost px-3 py-1.5 rounded-lg text-xs admin-cancel-btn" data-booking-id="${b.id}">
+          <i class="fa-solid fa-xmark mr-1"></i>${t('bookings.cancelBtn')}
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.parentElement.classList.toggle('hidden', filtered.length === 0);
+  emptyEl.classList.toggle('hidden', filtered.length > 0);
+
+  tbody.querySelectorAll('.admin-cancel-btn').forEach((btn) => {
+    btn.addEventListener('click', () => cancelBooking(btn.getAttribute('data-booking-id')));
+  });
+}
+
+document.getElementById('adminSearchInput').addEventListener('input', renderAdminPanel);
+
+/* ---------------------------------------------------------
+   16. GLOBAL RENDER + INIT
+--------------------------------------------------------- */
+function renderAll() {
+  renderAuthArea();
+  renderCatalog();
+  if (state.currentView === 'floorplan' && state.fp.restaurantId) {
+    renderFloorPlanHeader();
+    renderFloorPlan();
+    renderSidebar();
+  }
+  if (state.currentView === 'bookings') renderBookings();
+  if (state.currentView === 'admin') renderAdminPanel();
+}
+
+(function init() {
+  document.getElementById('fpDate').value = new Date().toISOString().slice(0, 10);
+  applyTranslations();
+  renderAuthArea();
+  renderCatalog();
+})();
+</script>
+</body>
+</html>

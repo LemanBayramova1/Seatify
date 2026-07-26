@@ -1,0 +1,184 @@
+{
+  "common": {
+    "appName": "Seatify",
+    "save": "Yadda saxla",
+    "cancel": "Ləğv et",
+    "delete": "Sil",
+    "close": "Bağla",
+    "loading": "Yüklənir…",
+    "confirm": "Təsdiqlə",
+    "back": "Geri",
+    "language": "Dil",
+    "azn": "AZN"
+  },
+  "nav": {
+    "builder": "Zal planı redaktoru",
+    "booking": "Masa sifariş et",
+    "restaurants": "Restoranlar",
+    "myBookings": "Mənim Bronlarım"
+  },
+  "header": {
+    "signIn": "Daxil ol",
+    "myBookings": "Mənim Bronlarım",
+    "logout": "Çıxış"
+  },
+  "auth": {
+    "loginTitle": "Yenidən xoş gəlmisiniz",
+    "registerTitle": "Hesab yaradın",
+    "tabLogin": "Daxil ol",
+    "tabRegister": "Qeydiyyat",
+    "name": "Ad və soyad",
+    "email": "E-poçt",
+    "password": "Şifrə",
+    "role": "Mən...",
+    "roleCustomer": "Qonaq",
+    "roleCustomerHint": "Restoranlarda masa sifariş edirəm",
+    "roleRestaurantOwner": "Restoran Sahibi",
+    "roleRestaurantOwnerHint": "Öz zalımın planını idarə edirəm",
+    "submitting": "Zəhmət olmasa gözləyin…",
+    "loginCta": "Daxil ol",
+    "registerCta": "Hesab yarat",
+    "mockNotice": "Demo rejim — hər hansı məlumatla demo qonaq kimi daxil olacaqsınız.",
+    "errors": {
+      "invalidEmail": "Zəhmət olmasa düzgün e-poçt ünvanı daxil edin",
+      "shortPassword": "Şifrə ən azı 4 simvoldan ibarət olmalıdır",
+      "nameRequired": "Zəhmət olmasa adınızı daxil edin",
+      "loginFailed": "E-poçt və ya şifrə yanlışdır",
+      "registerFailed": "Hesab yaradıla bilmədi. Zəhmət olmasa yenidən cəhd edin."
+    }
+  },
+  "builder": {
+    "toolbox": "Elementlər",
+    "roundTable": "Dairəvi masa",
+    "squareTable": "Kvadrat masa",
+    "rectTable": "Uzun masa",
+    "stage": "Səhnə",
+    "window": "Pəncərə",
+    "door": "Qapı / Giriş",
+    "dropHint": "Elementi zala sürükləyin, və ya mərkəzə əlavə etmək üçün klikləyin.",
+    "saveLayout": "Planı yadda saxla",
+    "saving": "Yadda saxlanılır…",
+    "saved": "Plan yadda saxlanıldı",
+    "unsavedChanges": "Yadda saxlanılmamış dəyişikliklər",
+    "clearBoard": "Zalı təmizlə",
+    "clearConfirmTitle": "Bütün zal planını təmizləmək istəyirsiniz?",
+    "clearConfirmBody": "Bu, bütün masaları, səhnəni, pəncərələri və qapıları kətandan siləcək. Bundan sonra geri qaytara bilərsiniz.",
+    "undo": "Geri qaytar",
+    "properties": "Element xüsusiyyətləri",
+    "label": "Etiket",
+    "capacity": "Tutum (yer sayı)",
+    "minDeposit": "Minimum depozit (AZN)",
+    "zone": "Zona",
+    "deleteElement": "Elementi sil",
+    "selectHint": "Xüsusiyyətlərini redaktə etmək üçün kətandan bir element seçin",
+    "signInPrompt": "Zal planınızı idarə etmək üçün Restoran Sahibi kimi daxil olun.",
+    "notAuthorized": "Zal planı redaktoruna yalnız Restoran Sahibi hesabları daxil ola bilər.",
+    "zones": {
+      "VIP": "VIP",
+      "WINDOW": "Pəncərə kənarı",
+      "STAGE": "Səhnəyə yaxın",
+      "QUIET_CORNER": "Sakit künc",
+      "BAR": "Bar",
+      "TERRACE": "Terras",
+      "GENERAL": "Ümumi"
+    }
+  },
+  "restaurants": {
+    "heroTitle": "Masanızı tapın",
+    "heroSubtitle": "Restoranlara baxın, sonra real vaxt rejimində ən uyğun yeri sifariş edin.",
+    "searchPlaceholder": "Restoran axtar…",
+    "filterCuisine": "Mətbəx",
+    "filterZone": "Zona",
+    "filterRating": "Reytinq",
+    "anyRating": "İstənilən reytinq",
+    "noResults": "Filtrlərinizə uyğun restoran tapılmadı. Axtarışı genişləndirin.",
+    "viewFloorPlan": "Masa Seç",
+    "backToCatalog": "Restoranlara qayıt"
+  },
+  "drawer": {
+    "title": "Masa məlumatı",
+    "tableId": "Masa ID",
+    "capacity": "Qonaq tutumu",
+    "minSpend": "Minimum xərc",
+    "features": "Xüsusiyyətlər",
+    "specialRequests": "Xüsusi istəklər",
+    "specialRequestsPlaceholder": "məs. ad günü, allergiya, oturacaq seçimi…",
+    "authRequiredNotice": "Rezervasiyanı tamamlamaq üçün daxil olun.",
+    "reserve": "Bu masanı sifariş et",
+    "signInToReserve": "Sifariş üçün daxil olun",
+    "zoneFeature": {
+      "VIP": "Şəxsi / VIP zona",
+      "WINDOW": "Pəncərə kənarında",
+      "STAGE": "Səhnəyə yaxın",
+      "QUIET_CORNER": "Sakit künc",
+      "BAR": "Bar mənzərəsi",
+      "TERRACE": "Açıq hava terası",
+      "GENERAL": "Mərkəzi yer",
+      "staffPick": "Tövsiyə olunur"
+    }
+  },
+  "myBookings": {
+    "title": "Mənim Bronlarım",
+    "subtitle": "Bütün rezervasiyalarınız bir yerdə.",
+    "signInPrompt": "Rezervasiyalarınızı görmək üçün daxil olun.",
+    "empty": "Hələ heç bir bronunuz yoxdur.",
+    "table": "Masa",
+    "date": "Tarix",
+    "time": "Vaxt",
+    "guests": "Qonaq sayı",
+    "cancel": "Bronu ləğv et",
+    "cancelConfirmTitle": "Bu rezervasiyanı ləğv etmək istəyirsiniz?",
+    "cancelConfirmBody": "{{restaurant}} restoranındakı masanız boşaldılacaq və digər qonaqlar üçün mövcud olacaq.",
+    "status": {
+      "CONFIRMED": "Təsdiqlənib",
+      "PENDING": "Gözləmədə"
+    }
+  },
+  "guest": {
+    "heroTitle": "Masanızı tapın",
+    "heroSubtitle": "Real vaxt rejimində yenilənən mövcudluq.",
+    "filters": {
+      "guests": "Qonaq sayı",
+      "zone": "Zona",
+      "date": "Tarix",
+      "timeSlot": "Vaxt",
+      "allZones": "Bütün zonalar",
+      "search": "Axtar"
+    },
+    "tooltip": {
+      "capacity": "{{count}} yer",
+      "minSpend": "{{amount}} AZN minimum xərc",
+      "zone": "Zona: {{zone}}"
+    },
+    "status": {
+      "FREE": "Boş",
+      "HELD": "Saxlanılıb",
+      "BOOKED": "Sifariş edilib",
+      "SELECTED": "Seçilmiş"
+    },
+    "noResults": "Filtrlərinizə uyğun masa tapılmadı. Axtarışı genişləndirin.",
+    "tableTaken": "Bu masa həmin vaxt aralığı üçün bu yaxınlarda tutulub. Zəhmət olmasa başqasını seçin.",
+    "holdCountdown": "Sizin üçün saxlanılıb — sifarişi tamamlamaq üçün {{seconds}} saniyə qalıb",
+    "holdExpired": "Saxlama müddəti bitdi. Zəhmət olmasa masanı yenidən seçin."
+  },
+  "bookingModal": {
+    "title": "{{label}} masasını sifariş et",
+    "detailsStep": "Sizin məlumatlarınız",
+    "paymentStep": "Ödəniş",
+    "name": "Ad və soyad",
+    "phone": "Telefon nömrəsi",
+    "date": "Tarix",
+    "guestsCount": "Qonaq sayı",
+    "nameRequired": "Zəhmət olmasa adınızı daxil edin",
+    "phoneRequired": "Zəhmət olmasa düzgün telefon nömrəsi daxil edin",
+    "guestsExceedCapacity": "Bu masa maksimum {{capacity}} qonaq tuta bilər",
+    "continueToPayment": "Ödənişə keç",
+    "cardDetails": "Kart məlumatları",
+    "mockNotice": "Demo rejim — real ödəniş həyata keçirilmir. C# API-niz burada Stripe Connect vasitəsilə əsl PaymentIntent yaradacaq.",
+    "depositDue": "Ödəniləcək depozit",
+    "payNow": "Təsdiqlə və ödə",
+    "paying": "Emal olunur…",
+    "success": "Rezervasiya təsdiqləndi! Görüşənədək.",
+    "failure": "Rezervasiyanı təsdiqləyərkən xəta baş verdi."
+  }
+}
