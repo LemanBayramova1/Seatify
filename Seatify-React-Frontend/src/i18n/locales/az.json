@@ -153,7 +153,9 @@
     "anyRating": "İstənilən reytinq",
     "noResults": "Filtrlərinizə uyğun restoran tapılmadı. Axtarışı genişləndirin.",
     "viewFloorPlan": "Masa Seç",
-    "backToCatalog": "Restoranlara qayıt"
+    "backToCatalog": "Restoranlara qayıt",
+    "newBadge": "Yeni",
+    "reviewsCount_other": "{{count}} rəy"
   },
   "drawer": {
     "title": "Masa məlumatı",
@@ -241,6 +243,21 @@
     "paying": "Emal olunur…",
     "success": "Rezervasiya təsdiqləndi! Görüşənədək.",
     "failure": "Rezervasiyanı təsdiqləyərkən xəta baş verdi."
+  },
+  "reviewModal": {
+    "title": "{{name}} üçün qiymət verin",
+    "writeReview": "Rəy yaz",
+    "yourRating": "Sizin reytinqiniz",
+    "ratingRequired": "Zəhmət olmasa ulduz seçin",
+    "commentLabel": "Rəyiniz (istəyə bağlı)",
+    "commentPlaceholder": "Təcrübənizi bölüşün…",
+    "submit": "Rəyi göndər",
+    "submitting": "Göndərilir…",
+    "signInPrompt": "Rəy yazmaq üçün daxil olun.",
+    "success": "Rəyiniz üçün təşəkkürlər!",
+    "failure": "Rəyi göndərərkən xəta baş verdi.",
+    "recentReviews": "Son rəylər",
+    "noReviews": "Hələ rəy yoxdur — ilk olun!"
   },
   "admin": {
     "dashboardTitle": "İdarə paneli",

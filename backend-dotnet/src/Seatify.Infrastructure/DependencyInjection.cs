@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IFloorPlanService, FloorPlanService>();
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IReviewService, ReviewService>();
 
         services.AddHostedService<ExpiredHoldReleaseService>();
 

@@ -28,4 +28,5 @@ public class Venue : BaseEntity
     public User Owner { get; set; } = null!;
 
     public ICollection<FloorPlan> FloorPlans { get; set; } = new List<FloorPlan>();
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

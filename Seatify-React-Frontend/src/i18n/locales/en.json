@@ -153,7 +153,10 @@
     "anyRating": "Any rating",
     "noResults": "No restaurants match your filters. Try widening your search.",
     "viewFloorPlan": "View Floor Plan & Book Table",
-    "backToCatalog": "Back to restaurants"
+    "backToCatalog": "Back to restaurants",
+    "newBadge": "New",
+    "reviewsCount_one": "{{count}} review",
+    "reviewsCount_other": "{{count}} reviews"
   },
   "drawer": {
     "title": "Table Details",
@@ -241,6 +244,21 @@
     "paying": "Processing…",
     "success": "Reservation confirmed! See you soon.",
     "failure": "Something went wrong confirming your reservation."
+  },
+  "reviewModal": {
+    "title": "Rate {{name}}",
+    "writeReview": "Write a review",
+    "yourRating": "Your rating",
+    "ratingRequired": "Please select a star rating",
+    "commentLabel": "Your review (optional)",
+    "commentPlaceholder": "Share your experience…",
+    "submit": "Submit review",
+    "submitting": "Submitting…",
+    "signInPrompt": "Sign in to leave a review.",
+    "success": "Thanks for your review!",
+    "failure": "Something went wrong submitting your review.",
+    "recentReviews": "Recent reviews",
+    "noReviews": "No reviews yet — be the first!"
   },
   "admin": {
     "dashboardTitle": "Dashboard",

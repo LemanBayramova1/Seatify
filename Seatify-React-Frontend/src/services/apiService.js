@@ -164,15 +164,18 @@ function scheduleAutoRelease(reservationId, venueId, key, tableId, date, timeSlo
 // Venues (marketplace + Restaurant Owner dashboard)
 // ---------------------------------------------------------------------------
 
-// The API's Venue entity has no cuisine/rating/cover fields yet — fill in
-// sensible display defaults so the marketplace UI (built against the richer
-// mock catalog shape) renders real venues without changes.
+// The API's Venue entity has no cuisine/cover fields yet — fill in sensible display defaults
+// so the marketplace UI (built against the richer mock catalog shape) renders real venues
+// without changes. Rating/reviewCount DO come from the API now (VenueDto.Rating/ReviewCount,
+// computed server-side from the Reviews table) — a brand-new venue with no reviews yet is
+// `rating: 0, reviewCount: 0`, never a fabricated starting score.
 function apiVenueToRestaurant(v, zonesOffered = []) {
   return {
     id: v.id,
     name: v.name,
     cover: v.imageUrl || `https://picsum.photos/seed/${v.id}/800/500`,
-    rating: 4.5,
+    rating: v.rating ?? 0,
+    reviewCount: v.reviewCount ?? 0,
     address: v.address,
     cuisines: [],
     zonesOffered,
@@ -335,6 +338,64 @@ export async function getVenueReservations(venueId, { date, status } = {}) {
     }));
   }
   const { data } = await http.get(`/venues/${venueId}/reservations`, { params: { date, status } });
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Reviews & ratings (Customer view)
+// ---------------------------------------------------------------------------
+
+const reviewsKey = (venueId) => `seatify.mock.reviews.v1.${venueId}`;
+
+function readReviews(venueId) {
+  return loadJSON(reviewsKey(venueId), []);
+}
+
+function writeReviews(venueId, list) {
+  saveJSON(reviewsKey(venueId), list);
+}
+
+function currentMockUser() {
+  try {
+    return JSON.parse(localStorage.getItem("seatify.auth.user") ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+/** Every review left for a venue, newest first. */
+export async function getVenueReviews(venueId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    return readReviews(venueId);
+  }
+  const { data } = await http.get(`/venues/${venueId}/reviews`);
+  return data;
+}
+
+/** Submits (or updates, if the signed-in guest already reviewed this venue) a 1-5 star review. */
+export async function submitReview(venueId, { rating, comment }) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const user = currentMockUser();
+    const userId = user?.email ?? "anon";
+    const reviews = readReviews(venueId);
+    const existingIndex = reviews.findIndex((r) => r.userId === userId);
+    const review = {
+      id: existingIndex >= 0 ? reviews[existingIndex].id : `rev_${venueId}_${Date.now()}`,
+      venueId,
+      userId,
+      userName: user?.name ?? "Guest",
+      rating,
+      comment: comment?.trim() || null,
+      createdAt: new Date().toISOString(),
+    };
+    if (existingIndex >= 0) reviews[existingIndex] = review;
+    else reviews.unshift(review);
+    writeReviews(venueId, reviews);
+    return review;
+  }
+  const { data } = await http.post(`/venues/${venueId}/reviews`, { rating, comment });
   return data;
 }
 

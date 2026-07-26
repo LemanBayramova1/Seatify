@@ -20,7 +20,8 @@ public class VenueService : IVenueService
     public async Task<List<VenueDto>> GetAllAsync()
     {
         var venues = await _db.Venues.Where(v => v.IsActive).OrderBy(v => v.Name).ToListAsync();
-        return venues.Select(ToDto).ToList();
+        var stats = await GetRatingStatsAsync(venues.Select(v => v.Id));
+        return venues.Select(v => ToDto(v, stats)).ToList();
     }
 
     public async Task<VenueDto> GetByIdAsync(Guid id)
@@ -28,7 +29,8 @@ public class VenueService : IVenueService
         var venue = await _db.Venues.FindAsync(id)
             ?? throw new NotFoundException(nameof(Venue), id);
 
-        return ToDto(venue);
+        var stats = await GetRatingStatsAsync(new[] { id });
+        return ToDto(venue, stats);
     }
 
     public async Task<VenueDto> CreateAsync(Guid ownerId, CreateVenueRequestDto request)
@@ -45,13 +47,16 @@ public class VenueService : IVenueService
         _db.Venues.Add(venue);
         await _db.SaveChangesAsync();
 
-        return ToDto(venue);
+        // A freshly-created venue has no reviews yet — Rating/ReviewCount default to 0 rather
+        // than a fabricated starting score.
+        return ToDto(venue, new Dictionary<Guid, (double Average, int Count)>());
     }
 
     public async Task<List<VenueDto>> GetMineAsync(Guid ownerId)
     {
         var venues = await _db.Venues.Where(v => v.OwnerId == ownerId).OrderBy(v => v.Name).ToListAsync();
-        return venues.Select(ToDto).ToList();
+        var stats = await GetRatingStatsAsync(venues.Select(v => v.Id));
+        return venues.Select(v => ToDto(v, stats)).ToList();
     }
 
     public async Task<VenueDto> UpdateAsync(Guid venueId, Guid callerId, bool callerIsAdmin, UpdateVenueRequestDto request)
@@ -76,7 +81,27 @@ public class VenueService : IVenueService
 
         await _db.SaveChangesAsync();
 
-        return ToDto(venue);
+        var stats = await GetRatingStatsAsync(new[] { venueId });
+        return ToDto(venue, stats);
+    }
+
+    /// <summary>Average rating (rounded to 1 decimal) and review count per venue, in one grouped
+    /// query rather than one round-trip per venue.</summary>
+    private async Task<Dictionary<Guid, (double Average, int Count)>> GetRatingStatsAsync(IEnumerable<Guid> venueIds)
+    {
+        var ids = venueIds.ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, (double Average, int Count)>();
+        }
+
+        var raw = await _db.Reviews
+            .Where(r => ids.Contains(r.VenueId))
+            .GroupBy(r => r.VenueId)
+            .Select(g => new { VenueId = g.Key, Sum = g.Sum(r => r.Rating), Count = g.Count() })
+            .ToListAsync();
+
+        return raw.ToDictionary(x => x.VenueId, x => (Math.Round((double)x.Sum / x.Count, 1), x.Count));
     }
 
     public async Task<VenueDashboardDto> GetDashboardAsync(Guid venueId, Guid callerId, bool callerIsAdmin)
@@ -132,17 +157,23 @@ public class VenueService : IVenueService
             ? null
             : string.Join(',', values.Select(v => v.Trim()).Where(v => v.Length > 0));
 
-    private static VenueDto ToDto(Venue v) => new()
+    private static VenueDto ToDto(Venue v, Dictionary<Guid, (double Average, int Count)> stats)
     {
-        Id = v.Id,
-        Name = v.Name,
-        Address = v.Address,
-        Description = v.Description,
-        ImageUrl = v.ImageUrl,
-        City = v.City,
-        BusinessEmail = v.BusinessEmail,
-        BusinessPhone = v.BusinessPhone,
-        CuisineTypes = FromCsv(v.CuisineTypes),
-        GalleryImageUrls = FromCsv(v.GalleryImageUrls)
-    };
+        stats.TryGetValue(v.Id, out var stat);
+        return new()
+        {
+            Id = v.Id,
+            Name = v.Name,
+            Address = v.Address,
+            Description = v.Description,
+            ImageUrl = v.ImageUrl,
+            City = v.City,
+            BusinessEmail = v.BusinessEmail,
+            BusinessPhone = v.BusinessPhone,
+            CuisineTypes = FromCsv(v.CuisineTypes),
+            GalleryImageUrls = FromCsv(v.GalleryImageUrls),
+            Rating = stat.Average,
+            ReviewCount = stat.Count
+        };
+    }
 }

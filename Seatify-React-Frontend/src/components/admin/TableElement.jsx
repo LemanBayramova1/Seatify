@@ -41,12 +41,14 @@ export function TableElement({
     }
   }, [isEditor, isSelected]);
 
-  // Amber pulse for HELD tables — a looping yoyo tween on the shape's glow.
+  // Live "busy" indicator — a looping yoyo tween breathing the shape's glow, amber for HELD
+  // and red for BOOKED, so guests can spot occupied tables on the map at a glance.
   useEffect(() => {
     pulseTweenRef.current?.destroy();
     pulseTweenRef.current = null;
     const node = shapeRef.current;
-    if (!isEditor && isTable && status === STATUS.HELD && node) {
+    const isBusy = status === STATUS.HELD || status === STATUS.BOOKED;
+    if (!isEditor && isTable && isBusy && node) {
       node.shadowBlur(16);
       node.shadowOpacity(0.55);
       const tween = new Konva.Tween({
@@ -123,7 +125,7 @@ export function TableElement({
             const stage = e.target.getStage();
             stage.container().style.cursor = canInteract ? "pointer" : "default";
             onHover?.(e);
-            if (canInteract) runHoverTween(shapeRef.current, 18, 1.035);
+            if (canInteract) runHoverTween(shapeRef.current, 18, 1.06);
           },
           onMouseLeave: (e) => {
             const stage = e.target.getStage();

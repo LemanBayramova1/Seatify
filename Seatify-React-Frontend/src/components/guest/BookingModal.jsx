@@ -5,9 +5,8 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { confirmBooking, createPaymentIntent } from "../../services/apiService";
 import { hasStripeKey, stripePromise } from "../../lib/stripe";
 import { useBookingsStore } from "../../store/useBookingsStore";
+import { AZ_PHONE_PATTERN, formatAzPhone } from "../../lib/phone";
 import { GlassCard } from "../shared/GlassCard";
-
-const PHONE_PATTERN = /^[+\d][\d\s-]{6,}$/;
 
 export function BookingModal({ table, reservation, date, timeSlot, defaultGuests, specialRequests, venueId, restaurantName, onClose, onExpired }) {
   const { t } = useTranslation();
@@ -33,7 +32,7 @@ export function BookingModal({ table, reservation, date, timeSlot, defaultGuests
   function validate() {
     const next = {};
     if (!form.name.trim()) next.name = t("bookingModal.nameRequired");
-    if (!PHONE_PATTERN.test(form.phone.trim())) next.phone = t("bookingModal.phoneRequired");
+    if (!AZ_PHONE_PATTERN.test(form.phone.trim())) next.phone = t("bookingModal.phoneRequired");
     if (form.guests > table.capacity) next.guests = t("bookingModal.guestsExceedCapacity", { capacity: table.capacity });
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -137,8 +136,10 @@ export function BookingModal({ table, reservation, date, timeSlot, defaultGuests
                   <input
                     className="glass-input w-full"
                     placeholder="+994 50 123 45 67"
+                    inputMode="tel"
+                    maxLength={17}
                     value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    onChange={(e) => setForm({ ...form, phone: formatAzPhone(e.target.value) })}
                   />
                   {errors.phone && <p className="mt-1 text-xs text-red-400">{errors.phone}</p>}
                 </div>

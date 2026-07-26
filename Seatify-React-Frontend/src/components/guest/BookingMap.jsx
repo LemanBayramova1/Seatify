@@ -3,13 +3,15 @@ import { Layer, Stage } from "react-konva";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { cancelHold, getAvailability, holdTable } from "../../services/apiService";
+import { cancelHold, getAvailability, getVenueById, holdTable } from "../../services/apiService";
 import { joinVenue, leaveVenue, subscribe } from "../../services/realtimeBus";
 import { firstAvailableSlot, isSlotPast, todayIso, TIME_SLOTS } from "../../lib/timeSlots";
+import { useAuthStore } from "../../store/useAuthStore";
 import { TableElement } from "../admin/TableElement";
 import { Tooltip } from "../shared/Tooltip";
 import { FilterBar } from "./FilterBar";
 import { BookingModal } from "./BookingModal";
+import { ReviewModal } from "./ReviewModal";
 import { TableDetailsDrawer } from "./TableDetailsDrawer";
 
 const STAGE_WIDTH = 860;
@@ -17,6 +19,8 @@ const STAGE_HEIGHT = 560;
 
 export function BookingMap({ venueId, restaurant }) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const openAuthModal = useAuthStore((s) => s.openAuthModal);
   const [filters, setFilters] = useState({ date: todayIso(), timeSlot: TIME_SLOTS[2], partySize: 2, zone: "" });
   const [tables, setTables] = useState([]);
   const [overrides, setOverrides] = useState({});
@@ -24,7 +28,21 @@ export function BookingMap({ venueId, restaurant }) {
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [activeBooking, setActiveBooking] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [ratingInfo, setRatingInfo] = useState({ rating: restaurant?.rating, reviewCount: restaurant?.reviewCount });
   const prevSlotRef = useRef({ date: filters.date, timeSlot: filters.timeSlot });
+
+  function refreshRating() {
+    getVenueById(venueId).then((data) => setRatingInfo({ rating: data.rating, reviewCount: data.reviewCount }));
+  }
+
+  function handleWriteReview() {
+    if (!user) {
+      openAuthModal("login");
+      return;
+    }
+    setReviewModalOpen(true);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -132,11 +150,41 @@ export function BookingMap({ venueId, restaurant }) {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-50">{restaurant?.name ?? t("guest.heroTitle")}</h1>
             <p className="text-sm text-slate-400">
-              {restaurant ? `${restaurant.address} · ★ ${restaurant.rating}` : t("guest.heroSubtitle")}
+              {restaurant ? (
+                <>
+                  {restaurant.address} ·{" "}
+                  {ratingInfo.reviewCount ? (
+                    <>
+                      ★ {ratingInfo.rating.toFixed(1)}{" "}
+                      <span className="text-slate-500">({t("restaurants.reviewsCount", { count: ratingInfo.reviewCount })})</span>
+                    </>
+                  ) : (
+                    <span className="text-brand-300">{t("restaurants.newBadge")}</span>
+                  )}
+                </>
+              ) : (
+                t("guest.heroSubtitle")
+              )}
             </p>
           </div>
+          {restaurant && (
+            <button onClick={handleWriteReview} className="btn-ghost text-xs">
+              {t("reviewModal.writeReview")}
+            </button>
+          )}
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {reviewModalOpen && (
+          <ReviewModal
+            venueId={venueId}
+            restaurantName={restaurant?.name}
+            onClose={() => setReviewModalOpen(false)}
+            onSubmitted={refreshRating}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="mb-6">
         <FilterBar filters={filters} onChange={setFilters} availableZones={restaurant?.zonesOffered} />

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<FloorPlan> FloorPlans => Set<FloorPlan>();
     public DbSet<Table> Tables => Set<Table>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<Review> Reviews => Set<Review>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
