@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getAvailability, holdTable } from "../../services/apiService";
+import { cancelHold, getAvailability, holdTable } from "../../services/apiService";
 import { joinVenue, leaveVenue, subscribe } from "../../services/realtimeBus";
 import { todayIso, TIME_SLOTS } from "../../lib/timeSlots";
 import { TableElement } from "../admin/TableElement";
@@ -24,9 +24,33 @@ export function BookingMap({ venueId, restaurant }) {
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [activeBooking, setActiveBooking] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const prevSlotRef = useRef({ date: filters.date, timeSlot: filters.timeSlot });
 
   useEffect(() => {
     let cancelled = false;
+
+    // Changing the date or time slot invalidates any in-progress hold/selection for the OLD
+    // slot — release it server-side (best-effort) and reset local UI so a stale modal/highlight
+    // never survives a date change. partySize/zone changes alone don't touch a hold.
+    const prevSlot = prevSlotRef.current;
+    const slotChanged = prevSlot.date !== filters.date || prevSlot.timeSlot !== filters.timeSlot;
+    if (slotChanged) {
+      if (activeBooking) {
+        cancelHold({
+          venueId,
+          reservationId: activeBooking.reservation.reservationId,
+          tableId: activeBooking.table.id,
+          date: prevSlot.date,
+          timeSlot: prevSlot.timeSlot,
+        }).catch(() => {
+          // Best-effort — the hold may have already auto-expired server-side.
+        });
+      }
+      setSelectedTableId(null);
+      setActiveBooking(null);
+    }
+    prevSlotRef.current = { date: filters.date, timeSlot: filters.timeSlot };
+
     getAvailability({ venueId, ...filters }).then((data) => {
       if (!cancelled) {
         setTables(data.tables);
@@ -36,6 +60,7 @@ export function BookingMap({ venueId, restaurant }) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueId, filters]);
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import axios from "axios";
 import { publish } from "./realtimeBus";
 import { API_STATUS_TO_STATUS, ELEMENT_TYPES, STATUS, TABLE_ELEMENT_TYPES } from "../lib/zones";
 import { getRestaurant, RESTAURANTS } from "../lib/restaurants";
+import { todayIso } from "../lib/timeSlots";
 
 // ---------------------------------------------------------------------------
 // Axios client for the REAL C# .NET API. Every exported function below is
@@ -29,8 +30,8 @@ const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 // Shape/status mapping between the editor's element taxonomy (ROUND_TABLE,
 // SQUARE_TABLE, RECT_TABLE, ...) and the real API's Table.Shape enum (Circle,
 // Square, Rectangle). The API only models bookable tables — decorative
-// elements (stage/window/door/zone labels) are an editor-only convenience and
-// are dropped before saving to the real backend.
+// elements (stage/window/door/wall/bar-kitchen/zone labels) are an
+// editor-only convenience and are dropped before saving to the real backend.
 // ---------------------------------------------------------------------------
 const SHAPE_TO_API = {
   [ELEMENT_TYPES.ROUND_TABLE]: "Circle",
@@ -84,7 +85,7 @@ function apiTableToElement(table) {
 // counterpart below it. Floor plans and reservations are keyed per venue so
 // the marketplace can host several independent restaurants side by side.
 // ---------------------------------------------------------------------------
-const floorPlanKey = (venueId) => `seatify.mock.floorplan.v1.${venueId}`;
+const floorPlansKey = (venueId) => `seatify.mock.floorplans.v2.${venueId}`;
 const reservationsKey = (venueId) => `seatify.mock.reservations.v1.${venueId}`;
 const BOOKINGS_KEY = "seatify.mock.myBookings.v1";
 const holdTimers = new Map();
@@ -102,7 +103,7 @@ function saveJSON(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-function seedFloorPlan(venueId) {
+function seedFloorPlans(venueId) {
   const restaurant = getRestaurant(venueId);
   const elements = restaurant
     ? restaurant.floorPlanSeed
@@ -116,9 +117,13 @@ function seedFloorPlan(venueId) {
         { id: "window-1", type: ELEMENT_TYPES.WINDOW, x: 40, y: 40, width: 140, height: 16, rotation: 0, label: "Window" },
         { id: "door-1", type: ELEMENT_TYPES.DOOR, x: 700, y: 40, width: 60, height: 16, rotation: 0, label: "Entrance" },
       ];
-  const plan = { id: `${venueId}-floor-plan`, elements };
-  saveJSON(floorPlanKey(venueId), plan);
-  return plan;
+  const plans = [
+    // 860x560 matches the builder/booking-map Stage's native pixel size (see FloorPlanCanvas.jsx)
+    // so this seed's existing 860x560-shaped coordinates render at 1:1 scale, not stretched.
+    { id: `${venueId}-floor-1`, name: "Əsas Zal", level: 0, canvasWidth: 860, canvasHeight: 560, backgroundImageUrl: null, elements },
+  ];
+  saveJSON(floorPlansKey(venueId), plans);
+  return plans;
 }
 
 function slotKey(tableId, date, timeSlot) {
@@ -175,8 +180,9 @@ function apiVenueToRestaurant(v, zonesOffered = []) {
 }
 
 async function zonesOfferedFor(venueId) {
-  const plan = await getFloorPlan(venueId);
-  return Array.from(new Set(plan.elements.map((el) => el.zone).filter(Boolean)));
+  const plans = await getFloorPlans(venueId);
+  const elements = plans.flatMap((fp) => fp.elements);
+  return Array.from(new Set(elements.map((el) => el.zone).filter(Boolean)));
 }
 
 /** Marketplace listing. */
@@ -211,43 +217,173 @@ export async function getMyVenues() {
   return data;
 }
 
+/**
+ * Resolves which venue the signed-in Restaurant Owner should see in the builder/dashboard.
+ * Normally this is just their own venue (from `getMyVenues`), but for edge cases where an
+ * owner account has no venue yet — a legacy/seeded account, or a race right after
+ * registration — falls back to the first venue in the public catalog so the UI never sits
+ * on a permanently-empty, unexplained screen. `isFallback` lets the UI show a small notice
+ * when that happened.
+ */
+export async function resolveMyVenueId() {
+  const mine = await getMyVenues();
+  if (mine?.length) {
+    return { venueId: mine[0].id, venueName: mine[0].name, isFallback: false };
+  }
+
+  if (USE_MOCKS) {
+    return { venueId: "demo-venue", venueName: "My Restaurant (Demo)", isFallback: true };
+  }
+
+  const { data } = await http.get("/venues");
+  const fallback = data?.[0];
+  return fallback
+    ? { venueId: fallback.id, venueName: fallback.name, isFallback: true }
+    : { venueId: null, venueName: null, isFallback: false };
+}
+
+const venueDetailsKey = (venueId) => `seatify.mock.venueDetails.v1.${venueId}`;
+
+/** Full venue record for the Venue Settings edit form (name, address, contact, cuisine, gallery). */
+export async function getVenueDetails(venueId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const restaurant = getRestaurant(venueId);
+    const defaults = {
+      id: venueId,
+      name: restaurant?.name ?? "My Restaurant (Demo)",
+      address: restaurant?.address ?? "",
+      city: "Bakı",
+      businessEmail: "",
+      businessPhone: "",
+      description: "",
+      imageUrl: restaurant?.cover ?? "",
+      cuisineTypes: restaurant?.cuisines ?? [],
+      galleryImageUrls: [],
+    };
+    return loadJSON(venueDetailsKey(venueId), null) ?? defaults;
+  }
+  const { data } = await http.get(`/venues/${venueId}`);
+  return data;
+}
+
+/** Owner-facing venue update (Venue Settings page). */
+export async function updateVenue(venueId, payload) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const updated = { id: venueId, ...payload };
+    saveJSON(venueDetailsKey(venueId), updated);
+    return updated;
+  }
+  const { data } = await http.put(`/venues/${venueId}`, payload);
+  return data;
+}
+
+/** Overview metrics for the owner dashboard. */
+export async function getVenueDashboard(venueId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const plans = loadJSON(floorPlansKey(venueId), null) ?? seedFloorPlans(venueId);
+    const totalTables = plans.flatMap((fp) => fp.elements).filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).length;
+
+    const reservations = readReservations(venueId);
+    const now = Date.now();
+    const activeHolds = Object.values(reservations).filter(
+      (r) => r.status === STATUS.HELD && (!r.holdExpiresAt || r.holdExpiresAt > now)
+    ).length;
+
+    const bookings = readBookings().filter((b) => b.venueId === venueId);
+    const today = todayIso();
+    const todayReservations = bookings.filter((b) => b.date === today && b.status !== "CANCELLED").length;
+    const totalDepositRevenue = bookings
+      .filter((b) => b.status === "CONFIRMED")
+      .reduce((sum, b) => sum + (b.minDeposit ?? 0), 0);
+
+    return { todayReservations, activeHolds, totalTables, totalDepositRevenue };
+  }
+  const { data } = await http.get(`/venues/${venueId}/dashboard`);
+  return data;
+}
+
+// Mock bookings store status as "CONFIRMED" (see confirmBooking); normalize to the same
+// PascalCase the real API's ReservationStatus enum serializes as ("Confirmed", "Held", ...)
+// so both modes render with the same status labels/filter values.
+function pascalStatus(status) {
+  return status ? status[0].toUpperCase() + status.slice(1).toLowerCase() : status;
+}
+
+/** Bronlar (reservations) list for the owner dashboard, optionally filtered by date/status. */
+export async function getVenueReservations(venueId, { date, status } = {}) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    let bookings = readBookings().filter((b) => b.venueId === venueId);
+    if (date) bookings = bookings.filter((b) => b.date === date);
+    if (status) bookings = bookings.filter((b) => pascalStatus(b.status) === status);
+    return bookings.map((b) => ({
+      id: b.id,
+      tableId: b.tableId,
+      tableLabel: b.tableLabel,
+      venueId: b.venueId,
+      venueName: b.restaurantName,
+      reservationDate: b.date,
+      timeSlot: b.timeSlot,
+      partySize: b.guests,
+      status: pascalStatus(b.status),
+      depositFee: b.minDeposit,
+      depositPaid: b.status === "CONFIRMED",
+      createdAt: b.createdAt,
+    }));
+  }
+  const { data } = await http.get(`/venues/${venueId}/reservations`, { params: { date, status } });
+  return data;
+}
+
 // ---------------------------------------------------------------------------
 // Floor plan (Admin builder)
 // ---------------------------------------------------------------------------
 
-export async function getFloorPlan(venueId) {
-  if (USE_MOCKS) {
-    await wait(jitter());
-    return loadJSON(floorPlanKey(venueId), null) ?? seedFloorPlan(venueId);
-  }
-  try {
-    const { data } = await http.get(`/venues/${venueId}/floorplan`);
-    return { id: data.id, elements: data.tables.map(apiTableToElement) };
-  } catch (err) {
-    if (err.response?.status === 404) {
-      // Brand-new Restaurant Owner: a Venue exists (auto-created at registration) but no
-      // FloorPlan yet — the API only creates one on the first save.
-      return { id: null, elements: [] };
-    }
-    throw err;
-  }
+function floorPlanFromApi(fp) {
+  return {
+    id: fp.id,
+    name: fp.name,
+    level: fp.level,
+    canvasWidth: fp.canvasWidth,
+    canvasHeight: fp.canvasHeight,
+    backgroundImageUrl: fp.backgroundImageUrl ?? null,
+    elements: fp.tables.map(apiTableToElement),
+  };
 }
 
-export async function saveFloorPlan(venueId, elements) {
+/** Every floor plan (zone/room) for a venue, ordered by level, each with its own tables. */
+export async function getFloorPlans(venueId) {
   if (USE_MOCKS) {
     await wait(jitter());
-    const plan = { id: `${venueId}-floor-plan`, elements };
-    saveJSON(floorPlanKey(venueId), plan);
-    return plan;
+    return loadJSON(floorPlansKey(venueId), null) ?? seedFloorPlans(venueId);
   }
-  const tables = elements.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).map(tableElementToApi);
-  const { data } = await http.post(`/venues/${venueId}/floorplan`, {
-    name: "Main Floor",
-    canvasWidth: 1000,
-    canvasHeight: 700,
-    tables,
+  const { data } = await http.get(`/floorplans/${venueId}`);
+  return data.map(floorPlanFromApi);
+}
+
+/** Replaces a venue's entire multi-floor layout — every zone/room and its tables — at once. */
+export async function saveLayout(venueId, floorPlans) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    saveJSON(floorPlansKey(venueId), floorPlans);
+    return floorPlans;
+  }
+  const { data } = await http.post("/floorplans/save-layout", {
+    restaurantId: venueId,
+    floorPlans: floorPlans.map((fp) => ({
+      id: fp.id && GUID_PATTERN.test(fp.id) ? fp.id : undefined,
+      name: fp.name,
+      level: fp.level,
+      backgroundImageUrl: fp.backgroundImageUrl,
+      canvasWidth: fp.canvasWidth,
+      canvasHeight: fp.canvasHeight,
+      tables: fp.elements.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).map(tableElementToApi),
+    })),
   });
-  return { id: data.id, elements: data.tables.map(apiTableToElement) };
+  return data.map(floorPlanFromApi);
 }
 
 // ---------------------------------------------------------------------------
@@ -257,11 +393,12 @@ export async function saveFloorPlan(venueId, elements) {
 export async function getAvailability({ venueId, date, timeSlot, partySize, zone }) {
   if (USE_MOCKS) {
     await wait(jitter());
-    const plan = loadJSON(floorPlanKey(venueId), null) ?? seedFloorPlan(venueId);
+    const plans = loadJSON(floorPlansKey(venueId), null) ?? seedFloorPlans(venueId);
     const reservations = readReservations(venueId);
     const now = Date.now();
 
-    const tables = plan.elements
+    const tables = plans
+      .flatMap((fp) => fp.elements)
       .filter((el) => [ELEMENT_TYPES.ROUND_TABLE, ELEMENT_TYPES.SQUARE_TABLE, ELEMENT_TYPES.RECT_TABLE].includes(el.type))
       .filter((el) => (partySize ? el.capacity >= partySize : true))
       .filter((el) => (zone ? el.zone === zone : true))
@@ -272,19 +409,20 @@ export async function getAvailability({ venueId, date, timeSlot, partySize, zone
         return { ...el, status };
       });
 
-    return { floorPlanId: plan.id, tables };
+    return { tables };
   }
 
   // The API models one live status per table (Available/Held/Booked), not per-slot
-  // availability — there's no GET /tables/availability endpoint. Reuse the floor plan
-  // fetch (which already carries each table's current status) and apply the same
-  // partySize/zone filters client-side; `date`/`timeSlot` only travel along at hold time,
-  // for the reservation's own record.
-  const plan = await getFloorPlan(venueId);
-  const tables = plan.elements
+  // availability — there's no GET /tables/availability endpoint. Reuse the floor plans
+  // fetch (which already carries each table's current status), flattened across every
+  // zone/room, and apply the same partySize/zone filters client-side; `date`/`timeSlot`
+  // only travel along at hold time, for the reservation's own record.
+  const plans = await getFloorPlans(venueId);
+  const tables = plans
+    .flatMap((fp) => fp.elements)
     .filter((el) => (partySize ? el.capacity >= partySize : true))
     .filter((el) => (zone ? el.zone === zone : true));
-  return { floorPlanId: plan.id, tables };
+  return { tables };
 }
 
 /**

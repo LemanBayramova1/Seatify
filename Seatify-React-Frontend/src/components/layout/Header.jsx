@@ -20,6 +20,7 @@ export function Header() {
           <div className="hidden gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 sm:flex">
             {!isRestaurantOwner && <NavTab to="/restaurants" label={t("nav.restaurants")} />}
             {!isRestaurantOwner && <NavTab to="/my-bookings" label={t("nav.myBookings")} />}
+            {isRestaurantOwner && <NavTab to="/admin" end label={t("nav.dashboard")} />}
             {isRestaurantOwner && <NavTab to="/builder" label={t("nav.builder")} />}
           </div>
         </div>
@@ -39,10 +40,11 @@ export function Header() {
   );
 }
 
-function NavTab({ to, label }) {
+function NavTab({ to, label, end }) {
   return (
     <NavLink
       to={to}
+      end={end}
       className={({ isActive }) =>
         `rounded-full px-4 py-1.5 text-sm font-medium transition ${
           isActive ? "bg-brand-500 text-white shadow-glow" : "text-slate-400 hover:text-slate-200"

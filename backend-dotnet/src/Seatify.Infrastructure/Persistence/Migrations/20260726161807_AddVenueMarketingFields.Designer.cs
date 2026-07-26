@@ -11,8 +11,8 @@ using Seatify.Infrastructure.Persistence;
 namespace Seatify.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260726125921_ExtendFloorPlanAndTable")]
-    partial class ExtendFloorPlanAndTable
+    [Migration("20260726161807_AddVenueMarketingFields")]
+    partial class AddVenueMarketingFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -212,6 +212,10 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -239,10 +243,30 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BusinessEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BusinessPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CuisineTypes")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GalleryImageUrls")
+                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ImageUrl")

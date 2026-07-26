@@ -5,14 +5,18 @@ import { AuthModal } from "./components/auth/AuthModal";
 import { RequireRole } from "./components/auth/RequireRole";
 import { ROLES, useAuthStore } from "./store/useAuthStore";
 import AdminBuilderPage from "./pages/AdminBuilderPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import VenueSettingsPage from "./pages/VenueSettingsPage";
 import CustomerBookingPage from "./pages/CustomerBookingPage";
+import LandingPage from "./pages/LandingPage";
 import RestaurantsPage from "./pages/RestaurantsPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 
 export default function App() {
   const location = useLocation();
-  const isRestaurantOwner = useAuthStore((s) => s.user?.role === ROLES.RESTAURANT_OWNER);
-  const homePath = isRestaurantOwner ? "/builder" : "/restaurants";
+  const user = useAuthStore((s) => s.user);
+  const isRestaurantOwner = user?.role === ROLES.RESTAURANT_OWNER;
+  const homePath = isRestaurantOwner ? "/admin" : "/restaurants";
 
   return (
     <div className="min-h-full">
@@ -20,10 +24,26 @@ export default function App() {
 
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<Navigate to={homePath} replace />} />
+          <Route path="/" element={user ? <Navigate to={homePath} replace /> : <LandingPage />} />
           <Route path="/restaurants" element={<RestaurantsPage />} />
           <Route path="/restaurants/:venueId" element={<CustomerBookingPage />} />
           <Route path="/my-bookings" element={<MyBookingsPage />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireRole role={ROLES.RESTAURANT_OWNER}>
+                <AdminDashboardPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <RequireRole role={ROLES.RESTAURANT_OWNER}>
+                <VenueSettingsPage />
+              </RequireRole>
+            }
+          />
           <Route
             path="/builder"
             element={

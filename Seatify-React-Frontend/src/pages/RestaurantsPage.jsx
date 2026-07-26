@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { getVenues } from "../services/apiService";
 import { RestaurantCard } from "../components/restaurants/RestaurantCard";
 import { RestaurantFilters } from "../components/restaurants/RestaurantFilters";
 
 export default function RestaurantsPage() {
   const { t } = useTranslation();
-  const [filters, setFilters] = useState({ search: "", cuisine: "", zone: "", minRating: 0 });
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState({ search: "", cuisine: searchParams.get("cuisine") ?? "", zone: "", minRating: 0 });
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
 

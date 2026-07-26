@@ -203,6 +203,34 @@ public class ReservationService : IReservationService
         return reservations.Select(ToDto).ToList();
     }
 
+    public async Task<List<ReservationDto>> GetVenueReservationsAsync(Guid venueId, Guid callerId, bool callerIsAdmin, DateOnly? date, string? status)
+    {
+        var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == venueId)
+            ?? throw new NotFoundException(nameof(Venue), venueId);
+
+        if (!callerIsAdmin && venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        var query = _db.Reservations
+            .Include(r => r.Table).ThenInclude(t => t.FloorPlan).ThenInclude(f => f.Venue)
+            .Where(r => r.Table.FloorPlan.VenueId == venueId);
+
+        if (date.HasValue)
+        {
+            query = query.Where(r => r.ReservationDate == date.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ReservationStatus>(status, ignoreCase: true, out var parsedStatus))
+        {
+            query = query.Where(r => r.Status == parsedStatus);
+        }
+
+        var reservations = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        return reservations.Select(ToDto).ToList();
+    }
+
     public async Task ReleaseExpiredHoldsAsync()
     {
         var now = DateTime.UtcNow;

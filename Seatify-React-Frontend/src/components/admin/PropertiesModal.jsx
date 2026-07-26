@@ -5,15 +5,19 @@ import { useEditorStore } from "../../store/useEditorStore";
 import { GlassCard } from "../shared/GlassCard";
 
 const TABLE_TYPES = new Set([ELEMENT_TYPES.ROUND_TABLE, ELEMENT_TYPES.SQUARE_TABLE, ELEMENT_TYPES.RECT_TABLE]);
+const CAPACITY_PRESETS = [2, 4, 6, 8];
+const ROTATION_PRESETS = [0, 90, 180, 270];
 
 export function PropertiesModal() {
   const { t } = useTranslation();
-  const elements = useEditorStore((s) => s.elements);
+  const floorPlans = useEditorStore((s) => s.floorPlans);
+  const activeFloorPlanId = useEditorStore((s) => s.activeFloorPlanId);
   const selectedId = useEditorStore((s) => s.selectedId);
   const updateElement = useEditorStore((s) => s.updateElement);
   const removeElement = useEditorStore((s) => s.removeElement);
   const selectElement = useEditorStore((s) => s.selectElement);
 
+  const elements = floorPlans.find((fp) => fp.id === activeFloorPlanId)?.elements ?? [];
   const element = elements.find((el) => el.id === selectedId);
   const isTable = element && TABLE_TYPES.has(element.type);
 
@@ -44,10 +48,67 @@ export function PropertiesModal() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label-text">{t("builder.positionX")}</label>
+                  <input
+                    type="number"
+                    className="glass-input w-full"
+                    value={Math.round(element.x)}
+                    onChange={(e) => updateElement(element.id, { x: Number(e.target.value) }, { silent: true })}
+                  />
+                </div>
+                <div>
+                  <label className="label-text">{t("builder.positionY")}</label>
+                  <input
+                    type="number"
+                    className="glass-input w-full"
+                    value={Math.round(element.y)}
+                    onChange={(e) => updateElement(element.id, { y: Number(e.target.value) }, { silent: true })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label-text">{t("builder.rotation")}</label>
+                <div className="flex gap-1.5">
+                  {ROTATION_PRESETS.map((deg) => (
+                    <button
+                      key={deg}
+                      type="button"
+                      onClick={() => updateElement(element.id, { rotation: deg })}
+                      className={`flex-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+                        element.rotation === deg
+                          ? "border-brand-400/60 bg-brand-500 text-white shadow-glow"
+                          : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-slate-200"
+                      }`}
+                    >
+                      {deg}°
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {isTable && (
                 <>
                   <div>
                     <label className="label-text">{t("builder.capacity")}</label>
+                    <div className="mb-2 flex gap-1.5">
+                      {CAPACITY_PRESETS.map((n, i) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => updateElement(element.id, { capacity: n }, { silent: true })}
+                          className={`flex-1 rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+                            element.capacity === n
+                              ? "border-brand-400/60 bg-brand-500 text-white shadow-glow"
+                              : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-slate-200"
+                          }`}
+                        >
+                          {i === CAPACITY_PRESETS.length - 1 ? `${n}+` : n}
+                        </button>
+                      ))}
+                    </div>
                     <input
                       type="number"
                       min={1}

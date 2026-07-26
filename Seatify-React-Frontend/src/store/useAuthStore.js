@@ -83,9 +83,12 @@ export const useAuthStore = create((set) => ({
   isSubmitting: false,
   isModalOpen: false,
   modalMode: "login",
+  modalPresetRole: null,
 
-  openAuthModal(mode = "login") {
-    set({ isModalOpen: true, modalMode: mode });
+  /** `presetRole` pre-selects a role on the register tab — e.g. the landing page's
+   * "Restoran Sahibisiniz?" CTA opens straight into the Restaurant Owner registration form. */
+  openAuthModal(mode = "login", presetRole = null) {
+    set({ isModalOpen: true, modalMode: mode, modalPresetRole: presetRole });
   },
 
   closeAuthModal() {
@@ -122,8 +125,13 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  /** `role` accepts any of ROLES' values, plus loose variants normalized via normalizeRole. */
-  async register(name, email, password, role = ROLES.CUSTOMER) {
+  /**
+   * `role` accepts any of ROLES' values, plus loose variants normalized via normalizeRole.
+   * `extra` carries fields the AuthModal collects beyond the base four: `phone` (both roles),
+   * and for RestaurantOwner registrations `restaurantName`/`restaurantAddress`/`city`/
+   * `businessEmail`/`businessPhone`.
+   */
+  async register(name, email, password, role = ROLES.CUSTOMER, extra = {}) {
     if (!name.trim()) throw new Error("auth.errors.nameRequired");
     if (!EMAIL_PATTERN.test(email.trim())) throw new Error("auth.errors.invalidEmail");
     if (!password || password.length < 4) throw new Error("auth.errors.shortPassword");
@@ -133,7 +141,22 @@ export const useAuthStore = create((set) => ({
     if (USE_MOCKS) {
       await wait(400 + Math.random() * 300);
       rememberMockRole(email, normalizedRole);
-      const user = { name: name.trim(), email: email.trim(), role: normalizedRole, initials: initials(name.trim()) };
+      const user = {
+        name: name.trim(),
+        email: email.trim(),
+        role: normalizedRole,
+        initials: initials(name.trim()),
+        phone: extra.phone ?? null,
+        ...(normalizedRole === ROLES.RESTAURANT_OWNER
+          ? {
+              restaurantName: extra.restaurantName,
+              restaurantAddress: extra.restaurantAddress,
+              city: extra.city,
+              businessEmail: extra.businessEmail,
+              businessPhone: extra.businessPhone,
+            }
+          : {}),
+      };
       persistUser(user);
       set({ user, isSubmitting: false });
       return user;
@@ -145,6 +168,12 @@ export const useAuthStore = create((set) => ({
         email: email.trim(),
         password,
         role: normalizedRole,
+        phone: extra.phone || undefined,
+        restaurantName: extra.restaurantName || undefined,
+        restaurantAddress: extra.restaurantAddress || undefined,
+        city: extra.city || undefined,
+        businessEmail: extra.businessEmail || undefined,
+        businessPhone: extra.businessPhone || undefined,
       });
       const user = { ...data.user, initials: initials(data.user.name) };
       persistUser(user, data.token);

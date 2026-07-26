@@ -11,6 +11,8 @@ const ITEMS = [
   { type: ELEMENT_TYPES.STAGE, labelKey: "builder.stage", swatch: "rounded-md w-9 h-5", tone: "bg-fuchsia-300" },
   { type: ELEMENT_TYPES.WINDOW, labelKey: "builder.window", swatch: "rounded-full w-9 h-1.5", tone: "bg-sky-400" },
   { type: ELEMENT_TYPES.DOOR, labelKey: "builder.door", swatch: "rounded-full w-9 h-1.5", tone: "bg-amber-500" },
+  { type: ELEMENT_TYPES.WALL, labelKey: "builder.wall", swatch: "rounded-sm w-9 h-2", tone: "bg-slate-400" },
+  { type: ELEMENT_TYPES.BAR_KITCHEN, labelKey: "builder.barKitchen", swatch: "rounded-md w-9 h-6", tone: "bg-emerald-400" },
 ];
 
 export function Toolbox() {

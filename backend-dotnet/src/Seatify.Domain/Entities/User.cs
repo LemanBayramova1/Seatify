@@ -9,6 +9,7 @@ public class User : BaseEntity
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public UserRole Role { get; set; } = UserRole.Customer;
+    public string? Phone { get; set; }
 
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
     public ICollection<Venue> OwnedVenues { get; set; } = new List<Venue>();

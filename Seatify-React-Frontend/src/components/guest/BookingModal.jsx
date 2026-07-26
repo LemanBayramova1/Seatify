@@ -219,13 +219,31 @@ function StripePaymentFields({ onPay }) {
   );
 }
 
+const CARD_NUMBER_PATTERN = /^(\d{4} ){3}\d{4}$/;
+const EXPIRY_PATTERN = /^(0[1-9]|1[0-2])\/\d{2}$/;
+const CVC_PATTERN = /^\d{3,4}$/;
+
+function formatCardNumber(raw) {
+  const digits = raw.replace(/\D/g, "").slice(0, 16);
+  return digits.match(/.{1,4}/g)?.join(" ") ?? digits;
+}
+
+function formatExpiry(raw) {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+}
+
 function MockPaymentFields({ onPay }) {
   const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
   const [card, setCard] = useState({ number: "", expiry: "", cvc: "" });
+  const [showCvc, setShowCvc] = useState(false);
+
+  const isValid = CARD_NUMBER_PATTERN.test(card.number) && EXPIRY_PATTERN.test(card.expiry) && CVC_PATTERN.test(card.cvc);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!isValid) return;
     setSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 700));
     setSubmitting(false);
@@ -240,8 +258,9 @@ function MockPaymentFields({ onPay }) {
           className="glass-input w-full"
           placeholder="4242 4242 4242 4242"
           value={card.number}
-          onChange={(e) => setCard({ ...card, number: e.target.value })}
-          required
+          maxLength={19}
+          inputMode="numeric"
+          onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })}
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -249,12 +268,31 @@ function MockPaymentFields({ onPay }) {
           className="glass-input"
           placeholder="MM/YY"
           value={card.expiry}
-          onChange={(e) => setCard({ ...card, expiry: e.target.value })}
-          required
+          maxLength={5}
+          inputMode="numeric"
+          onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })}
         />
-        <input className="glass-input" placeholder="CVC" value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} required />
+        <div className="relative">
+          <input
+            className="glass-input w-full pr-9"
+            placeholder="CVC"
+            type={showCvc ? "text" : "password"}
+            value={card.cvc}
+            maxLength={4}
+            inputMode="numeric"
+            onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+          />
+          <button
+            type="button"
+            onClick={() => setShowCvc((v) => !v)}
+            tabIndex={-1}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-200"
+          >
+            {showCvc ? "🙈" : "👁"}
+          </button>
+        </div>
       </div>
-      <button type="submit" disabled={submitting} className="btn-primary w-full">
+      <button type="submit" disabled={submitting || !isValid} className="btn-primary w-full">
         {submitting ? t("bookingModal.paying") : t("bookingModal.payNow")}
       </button>
     </form>

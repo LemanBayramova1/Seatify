@@ -19,6 +19,8 @@ export const ELEMENT_TYPES = {
   STAGE: "STAGE",
   WINDOW: "WINDOW",
   DOOR: "DOOR",
+  WALL: "WALL",
+  BAR_KITCHEN: "BAR_KITCHEN",
   ZONE_LABEL: "ZONE_LABEL",
 };
 

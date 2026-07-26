@@ -10,26 +10,33 @@ const STAGE_HEIGHT = 560;
 export function FloorPlanCanvas() {
   const { t } = useTranslation();
   const containerRef = useRef(null);
-  const { elements, selectedId, isLoading, initialize, selectElement, updateElement, addElement } = useEditorStore((s) => ({
-    elements: s.elements,
-    selectedId: s.selectedId,
-    isLoading: s.isLoading,
-    initialize: s.initialize,
-    selectElement: s.selectElement,
-    updateElement: s.updateElement,
-    addElement: s.addElement,
-  }));
+  const floorPlans = useEditorStore((s) => s.floorPlans);
+  const activeFloorPlanId = useEditorStore((s) => s.activeFloorPlanId);
+  const selectedId = useEditorStore((s) => s.selectedId);
+  const isLoading = useEditorStore((s) => s.isLoading);
+  const initialize = useEditorStore((s) => s.initialize);
+  const selectElement = useEditorStore((s) => s.selectElement);
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const addElement = useEditorStore((s) => s.addElement);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  const activeFloorPlan = floorPlans.find((fp) => fp.id === activeFloorPlanId);
+  const elements = activeFloorPlan?.elements ?? [];
+  // Each zone can have its own logical canvas size; render it into the fixed-size Stage below by
+  // scaling — Konva keeps shape-local coordinates (drag/transform math in TableElement) in
+  // canvas-space regardless of this render-only scale, so nothing else needs to know about it.
+  const scaleX = STAGE_WIDTH / (activeFloorPlan?.canvasWidth ?? STAGE_WIDTH);
+  const scaleY = STAGE_HEIGHT / (activeFloorPlan?.canvasHeight ?? STAGE_HEIGHT);
 
   function handleDrop(e) {
     e.preventDefault();
     const type = e.dataTransfer.getData("application/seatify-element");
     if (!type || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    addElement(type, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    addElement(type, { x: (e.clientX - rect.left) / scaleX, y: (e.clientY - rect.top) / scaleY });
   }
 
   return (
@@ -55,6 +62,8 @@ export function FloorPlanCanvas() {
       <Stage
         width={STAGE_WIDTH}
         height={STAGE_HEIGHT}
+        scaleX={scaleX}
+        scaleY={scaleY}
         onMouseDown={(e) => {
           if (e.target === e.target.getStage()) selectElement(null);
         }}

@@ -20,6 +20,7 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                     Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: false),
                     PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
                     Role = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    Phone = table.Column<string>(type: "TEXT", maxLength: 30, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
@@ -37,6 +38,9 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                     Address = table.Column<string>(type: "TEXT", maxLength: 300, nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
                     ImageUrl = table.Column<string>(type: "TEXT", nullable: true),
+                    City = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    BusinessEmail = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    BusinessPhone = table.Column<string>(type: "TEXT", maxLength: 30, nullable: true),
                     OwnerId = table.Column<Guid>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)

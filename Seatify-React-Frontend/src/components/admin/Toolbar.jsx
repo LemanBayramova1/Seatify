@@ -7,19 +7,27 @@ import { GlassCard } from "../shared/GlassCard";
 export function Toolbar() {
   const { t } = useTranslation();
   const [confirmClear, setConfirmClear] = useState(false);
-  const { save, undo, clearBoard, isSaving, isDirty, history } = useEditorStore((s) => ({
-    save: s.save,
-    undo: s.undo,
-    clearBoard: s.clearBoard,
-    isSaving: s.isSaving,
-    isDirty: s.isDirty,
-    history: s.history,
-  }));
+  const [saveError, setSaveError] = useState(null);
+  const save = useEditorStore((s) => s.save);
+  const undo = useEditorStore((s) => s.undo);
+  const clearBoard = useEditorStore((s) => s.clearBoard);
+  const isSaving = useEditorStore((s) => s.isSaving);
+  const isDirty = useEditorStore((s) => s.isDirty);
+  const history = useEditorStore((s) => s.history);
+
+  async function handleSave() {
+    setSaveError(null);
+    try {
+      await save();
+    } catch (err) {
+      setSaveError(err.response?.data?.error ?? t("builder.saveFailed"));
+    }
+  }
 
   return (
     <>
       <GlassCard className="flex items-center gap-3 px-4 py-3">
-        <button onClick={save} disabled={isSaving} className="btn-primary">
+        <button onClick={handleSave} disabled={isSaving} className="btn-primary">
           {isSaving ? t("builder.saving") : t("builder.saveLayout")}
         </button>
         <button onClick={undo} disabled={history.length === 0} className="btn-ghost">
@@ -31,6 +39,7 @@ export function Toolbar() {
         <span className="ml-2 text-xs text-slate-400">
           {isDirty ? `● ${t("builder.unsavedChanges")}` : t("builder.saved")}
         </span>
+        {saveError && <span className="text-xs text-red-400">{saveError}</span>}
       </GlassCard>
 
       <AnimatePresence>

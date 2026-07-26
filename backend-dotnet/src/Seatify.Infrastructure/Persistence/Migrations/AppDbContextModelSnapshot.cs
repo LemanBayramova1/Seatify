@@ -209,6 +209,10 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -236,10 +240,30 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BusinessEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BusinessPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CuisineTypes")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GalleryImageUrls")
+                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ImageUrl")

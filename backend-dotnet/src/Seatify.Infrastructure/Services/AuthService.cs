@@ -40,19 +40,27 @@ public class AuthService : IAuthService
             Name = request.Name.Trim(),
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            Role = role
+            Role = role,
+            Phone = request.Phone?.Trim()
         };
 
         _db.Users.Add(user);
 
-        // Restaurant Owners need somewhere to build a floor plan immediately after signing up —
-        // there's no separate "create my first venue" screen yet, so seed one automatically.
         if (role == UserRole.RestaurantOwner)
         {
+            if (string.IsNullOrWhiteSpace(request.RestaurantName) || string.IsNullOrWhiteSpace(request.City))
+            {
+                throw new Application.Common.Exceptions.ValidationException(
+                    "Restaurant name and city are required when registering as a Restaurant Owner.");
+            }
+
             _db.Venues.Add(new Venue
             {
-                Name = $"{user.Name}'s Restaurant",
-                Address = "",
+                Name = request.RestaurantName.Trim(),
+                Address = request.RestaurantAddress?.Trim() ?? "",
+                City = request.City.Trim(),
+                BusinessEmail = request.BusinessEmail?.Trim(),
+                BusinessPhone = request.BusinessPhone?.Trim(),
                 OwnerId = user.Id,
                 Owner = user
             });
@@ -114,7 +122,8 @@ public class AuthService : IAuthService
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-                Role = user.Role.ToString()
+                Role = user.Role.ToString(),
+                Phone = user.Phone
             }
         };
     }

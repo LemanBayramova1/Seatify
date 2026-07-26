@@ -188,6 +188,22 @@ export function TableElement({
           listening={false}
         />
       )}
+      {element.type === ELEMENT_TYPES.WALL && (
+        <Rect
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2}
+          offsetY={element.height / 2}
+          width={element.width}
+          height={element.height}
+          rotation={element.rotation}
+          fill="#64748b"
+          stroke={isEditor && isSelected ? "#ffffff" : "rgba(15,23,42,0.55)"}
+          strokeWidth={isEditor && isSelected ? 2 : 1}
+          {...interactionProps}
+        />
+      )}
       {element.type === ELEMENT_TYPES.STAGE && (
         <Rect
           ref={shapeRef}
@@ -203,6 +219,24 @@ export function TableElement({
           cornerRadius={10}
           stroke="#e9d5ff"
           strokeWidth={1}
+          {...interactionProps}
+        />
+      )}
+      {element.type === ELEMENT_TYPES.BAR_KITCHEN && (
+        <Rect
+          ref={shapeRef}
+          x={element.x}
+          y={element.y}
+          offsetX={element.width / 2}
+          offsetY={element.height / 2}
+          width={element.width}
+          height={element.height}
+          rotation={element.rotation}
+          fill="#34d399"
+          opacity={0.8}
+          cornerRadius={8}
+          stroke="#a7f3d0"
+          strokeWidth={isEditor && isSelected ? 3 : 1}
           {...interactionProps}
         />
       )}
@@ -288,7 +322,7 @@ export function TableElement({
         />
       )}
 
-      {(isTable || element.type === ELEMENT_TYPES.STAGE) && (
+      {(isTable || element.type === ELEMENT_TYPES.STAGE || element.type === ELEMENT_TYPES.BAR_KITCHEN) && (
         <Text
           x={element.x - element.width / 2}
           y={element.y - 7}

@@ -11,7 +11,7 @@ using Seatify.Infrastructure.Persistence;
 namespace Seatify.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260726125455_InitialCreate")]
+    [Migration("20260726134436_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -212,6 +212,10 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -237,6 +241,18 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                     b.Property<string>("Address")
                         .IsRequired()
                         .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BusinessEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BusinessPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
