@@ -26,6 +26,8 @@ public class SaveTableRequestDto
 
     [Range(0, double.MaxValue)]
     public decimal DepositFee { get; set; }
+
+    public bool IsActive { get; set; } = true;
 }
 
 public class SaveFloorPlanRequestDto

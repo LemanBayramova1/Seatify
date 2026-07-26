@@ -35,7 +35,7 @@ public class FloorPlanService : IFloorPlanService
         }
 
         var dto = ToDto(floorPlan);
-        await AttachActiveHoldsAsync(dto);
+        await AttachActiveHoldsAsync(dto.Tables);
         return dto;
     }
 
@@ -126,13 +126,166 @@ public class FloorPlanService : IFloorPlanService
         await _db.SaveChangesAsync();
 
         var dto = ToDto(floorPlan);
-        await AttachActiveHoldsAsync(dto);
+        await AttachActiveHoldsAsync(dto.Tables);
         return dto;
     }
 
-    private async Task AttachActiveHoldsAsync(FloorPlanDto dto)
+    public async Task<List<FloorPlanDto>> GetAllByVenueIdAsync(Guid venueId)
     {
-        var tableIds = dto.Tables.Select(t => t.Id).ToList();
+        var venueExists = await _db.Venues.AnyAsync(v => v.Id == venueId);
+        if (!venueExists)
+        {
+            throw new NotFoundException(nameof(Venue), venueId);
+        }
+
+        var floorPlans = await _db.FloorPlans
+            .Where(f => f.VenueId == venueId)
+            .Include(f => f.Tables.Where(t => t.IsActive))
+            .OrderBy(f => f.Level)
+            .ToListAsync();
+
+        var dtos = floorPlans.Select(ToDto).ToList();
+        await AttachActiveHoldsAsync(dtos.SelectMany(d => d.Tables));
+        return dtos;
+    }
+
+    public async Task<List<FloorPlanDto>> SaveLayoutAsync(Guid callerId, bool callerIsAdmin, SaveLayoutRequestDto request)
+    {
+        var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == request.RestaurantId)
+            ?? throw new NotFoundException(nameof(Venue), request.RestaurantId);
+
+        if (!callerIsAdmin && venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        var existingFloorPlans = await _db.FloorPlans
+            .Include(f => f.Tables)
+            .Where(f => f.VenueId == request.RestaurantId)
+            .ToListAsync();
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            var incomingFloorPlanIds = request.FloorPlans.Where(f => f.Id.HasValue).Select(f => f.Id!.Value).ToHashSet();
+            var floorPlansToRemove = existingFloorPlans.Where(f => !incomingFloorPlanIds.Contains(f.Id)).ToList();
+
+            foreach (var floorPlan in floorPlansToRemove)
+            {
+                await EnsureNoActiveReservationsAsync(floorPlan.Tables.Select(t => t.Id), floorPlan.Name);
+                _db.FloorPlans.Remove(floorPlan); // cascade removes its tables
+            }
+
+            var savedFloorPlans = new List<FloorPlan>();
+
+            foreach (var floorPlanRequest in request.FloorPlans)
+            {
+                var floorPlan = floorPlanRequest.Id.HasValue
+                    ? existingFloorPlans.FirstOrDefault(f => f.Id == floorPlanRequest.Id.Value)
+                        ?? throw new NotFoundException(nameof(FloorPlan), floorPlanRequest.Id.Value)
+                    : new FloorPlan { VenueId = request.RestaurantId };
+
+                if (!floorPlanRequest.Id.HasValue)
+                {
+                    _db.FloorPlans.Add(floorPlan);
+                }
+
+                floorPlan.Name = floorPlanRequest.Name.Trim();
+                floorPlan.Level = floorPlanRequest.Level;
+                floorPlan.BackgroundImageUrl = floorPlanRequest.BackgroundImageUrl;
+                floorPlan.CanvasWidth = floorPlanRequest.CanvasWidth;
+                floorPlan.CanvasHeight = floorPlanRequest.CanvasHeight;
+
+                var incomingTableIds = floorPlanRequest.Tables.Where(t => t.Id.HasValue).Select(t => t.Id!.Value).ToHashSet();
+                var tablesToRemove = floorPlan.Tables.Where(t => !incomingTableIds.Contains(t.Id)).ToList();
+
+                await EnsureNoActiveReservationsAsync(tablesToRemove.Select(t => t.Id), floorPlan.Name);
+                foreach (var table in tablesToRemove)
+                {
+                    floorPlan.Tables.Remove(table);
+                    _db.Tables.Remove(table);
+                }
+
+                foreach (var tableRequest in floorPlanRequest.Tables)
+                {
+                    var shape = Enum.Parse<TableShape>(tableRequest.Shape, ignoreCase: true);
+
+                    if (tableRequest.Id.HasValue)
+                    {
+                        var existing = floorPlan.Tables.FirstOrDefault(t => t.Id == tableRequest.Id.Value)
+                            ?? throw new NotFoundException(nameof(Table), tableRequest.Id.Value);
+
+                        existing.Label = tableRequest.Label.Trim();
+                        existing.X = tableRequest.X;
+                        existing.Y = tableRequest.Y;
+                        existing.Width = tableRequest.Width;
+                        existing.Height = tableRequest.Height;
+                        existing.Rotation = tableRequest.Rotation;
+                        existing.Shape = shape;
+                        existing.Zone = tableRequest.Zone;
+                        existing.Capacity = tableRequest.Capacity;
+                        existing.DepositFee = tableRequest.DepositFee;
+                        existing.IsActive = tableRequest.IsActive;
+                    }
+                    else
+                    {
+                        floorPlan.Tables.Add(new Table
+                        {
+                            FloorPlanId = floorPlan.Id,
+                            Label = tableRequest.Label.Trim(),
+                            X = tableRequest.X,
+                            Y = tableRequest.Y,
+                            Width = tableRequest.Width,
+                            Height = tableRequest.Height,
+                            Rotation = tableRequest.Rotation,
+                            Shape = shape,
+                            Zone = tableRequest.Zone,
+                            Capacity = tableRequest.Capacity,
+                            DepositFee = tableRequest.DepositFee,
+                            IsActive = tableRequest.IsActive,
+                            Status = TableStatus.Available
+                        });
+                    }
+                }
+
+                savedFloorPlans.Add(floorPlan);
+            }
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            var dtos = savedFloorPlans.OrderBy(f => f.Level).Select(ToDto).ToList();
+            await AttachActiveHoldsAsync(dtos.SelectMany(d => d.Tables));
+            return dtos;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private async Task EnsureNoActiveReservationsAsync(IEnumerable<Guid> tableIds, string floorPlanName)
+    {
+        var ids = tableIds.ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        var hasActiveReservation = await _db.Reservations.AnyAsync(r =>
+            ids.Contains(r.TableId) && (r.Status == ReservationStatus.Held || r.Status == ReservationStatus.Confirmed));
+
+        if (hasActiveReservation)
+        {
+            throw new ConflictException($"Floor '{floorPlanName}' has a table with an active hold or booking and cannot be removed.");
+        }
+    }
+
+    private async Task AttachActiveHoldsAsync(IEnumerable<TableDto> tables)
+    {
+        var tableList = tables.ToList();
+        var tableIds = tableList.Select(t => t.Id).ToList();
 
         var activeHolds = await _db.Reservations
             .Where(r => tableIds.Contains(r.TableId) && r.Status == ReservationStatus.Held)
@@ -141,7 +294,7 @@ public class FloorPlanService : IFloorPlanService
 
         var holdsByTable = activeHolds.ToDictionary(h => h.TableId, h => h.HoldExpiresAt);
 
-        foreach (var table in dto.Tables)
+        foreach (var table in tableList)
         {
             if (holdsByTable.TryGetValue(table.Id, out var expiresAt))
             {
@@ -155,6 +308,7 @@ public class FloorPlanService : IFloorPlanService
         Id = floorPlan.Id,
         VenueId = floorPlan.VenueId,
         Name = floorPlan.Name,
+        Level = floorPlan.Level,
         BackgroundImageUrl = floorPlan.BackgroundImageUrl,
         CanvasWidth = floorPlan.CanvasWidth,
         CanvasHeight = floorPlan.CanvasHeight,
@@ -171,7 +325,8 @@ public class FloorPlanService : IFloorPlanService
             Zone = t.Zone,
             Capacity = t.Capacity,
             DepositFee = t.DepositFee,
-            Status = t.Status.ToString()
+            Status = t.Status.ToString(),
+            IsActive = t.IsActive
         }).ToList()
     };
 }

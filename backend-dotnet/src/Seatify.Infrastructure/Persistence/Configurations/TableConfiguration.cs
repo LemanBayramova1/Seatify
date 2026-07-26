@@ -17,6 +17,7 @@ public class TableConfiguration : IEntityTypeConfiguration<Table>
         builder.Property(t => t.Shape).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(t => t.DepositFee).HasColumnType("decimal(10,2)");
+        builder.Property(t => t.IsActive).HasDefaultValue(true);
 
         builder.HasMany(t => t.Reservations)
             .WithOne(r => r.Table)
@@ -24,5 +25,6 @@ public class TableConfiguration : IEntityTypeConfiguration<Table>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(t => t.FloorPlanId);
+        builder.HasIndex(t => new { t.FloorPlanId, t.IsActive });
     }
 }

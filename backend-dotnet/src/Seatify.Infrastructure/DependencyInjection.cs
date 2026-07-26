@@ -25,10 +25,17 @@ public static class DependencyInjection
             {
                 options.UseNpgsql(databaseOptions.ConnectionString);
             }
+            else if (databaseOptions.Provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                var connectionString = configuration.GetConnectionString("DefaultConnection")
+                    ?? databaseOptions.ConnectionString;
+                options.UseSqlite(connectionString);
+            }
             else
             {
-                // Default: no external DB required for local dev. Every request shares the
-                // same named instance so data survives across the app's lifetime, not per-request.
+                // "InMemory": no external DB or file required, but note this provider does not
+                // support migrations. Every request shares the same named instance so data
+                // survives across the app's lifetime, not per-request.
                 options.UseInMemoryDatabase("SeatifyDb");
             }
         });

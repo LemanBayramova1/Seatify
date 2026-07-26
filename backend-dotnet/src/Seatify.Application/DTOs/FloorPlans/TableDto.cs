@@ -14,5 +14,6 @@ public class TableDto
     public int Capacity { get; set; }
     public decimal DepositFee { get; set; }
     public string Status { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
     public DateTime? HoldExpiresAt { get; set; }
 }

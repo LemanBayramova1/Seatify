@@ -8,6 +8,10 @@ public class FloorPlan : BaseEntity
     public Venue Venue { get; set; } = null!;
 
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>Stacking order for multi-floor venues, e.g. 0 = ground floor, 1 = mezzanine.</summary>
+    public int Level { get; set; }
+
     public string? BackgroundImageUrl { get; set; }
     public double CanvasWidth { get; set; } = 1000;
     public double CanvasHeight { get; set; } = 700;

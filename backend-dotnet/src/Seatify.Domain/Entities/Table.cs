@@ -24,5 +24,8 @@ public class Table : BaseEntity
 
     public TableStatus Status { get; set; } = TableStatus.Available;
 
+    /// <summary>Soft on/off switch for the builder UI; inactive tables are hidden from the public floor plan.</summary>
+    public bool IsActive { get; set; } = true;
+
     public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 }
