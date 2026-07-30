@@ -55,6 +55,19 @@
     "loginCta": "Log In",
     "registerCta": "Create account",
     "mockNotice": "Demo mode — any details will sign you in as our demo guest.",
+    "orDivider": "or",
+    "continueWithGoogle": "Continue with Google",
+    "googleSuccess": "Signed in with Google successfully",
+    "forgotPasswordLink": "Forgot password?",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a verification code.",
+    "sendResetCode": "Send code",
+    "resetCode": "Verification code",
+    "newPassword": "New password",
+    "resetPasswordCta": "Reset password",
+    "backToLogin": "← Back to login",
+    "resetCodeSent": "A code was sent to your email. Enter it below.",
+    "resetSuccess": "Your password has been reset. You can now log in.",
     "errors": {
       "invalidEmail": "Please enter a valid email address",
       "shortPassword": "Password must be at least 4 characters",
@@ -65,7 +78,12 @@
       "passwordMismatch": "Passwords do not match",
       "termsRequired": "You must accept the Terms of Service and Privacy Policy",
       "restaurantNameRequired": "Please enter your restaurant's name",
-      "cityRequired": "Please select a city / region"
+      "cityRequired": "Please select a city / region",
+      "googleFailed": "Could not sign in with Google. Please try again.",
+      "forgotPasswordFailed": "Could not send the code. Please try again.",
+      "resetPasswordFailed": "That code is invalid or has expired.",
+      "verifyOtpFailed": "That code is invalid or has expired.",
+      "sendOtpFailed": "Could not send the code. Please try again."
     }
   },
   "builder": {
@@ -147,6 +165,23 @@
     "step3Body": "Sign in, confirm your details, and you're booked.",
     "bottomCtaTitle": "Ready to find your table?",
     "bottomCtaButton": "Browse restaurants"
+  },
+  "otp": {
+    "title": "Verify your email",
+    "subtitle": "Enter the 6-digit code we sent to {{email}}.",
+    "code": "Verification code",
+    "verifyCta": "Verify",
+    "resendCta": "Resend code",
+    "resent": "Code resent",
+    "welcome": "Welcome, {{name}}!"
+  },
+  "chatbot": {
+    "header": "Seatify Support",
+    "onlineStatus": "Online",
+    "greeting": "Hi! How can I help you?",
+    "inputPlaceholder": "Type your message…",
+    "send": "Send",
+    "error": "Sorry, we couldn't send your message. Please try again."
   },
   "restaurants": {
     "heroTitle": "Find your table",

@@ -240,10 +240,22 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("OtpCodeHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("OtpExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("OtpPurpose")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -319,6 +331,9 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OperatingHours")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("TEXT");
 
@@ -348,13 +363,13 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                     b.HasOne("Seatify.Domain.Entities.Table", "Table")
                         .WithMany("Reservations")
                         .HasForeignKey("TableId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Seatify.Domain.Entities.User", "User")
                         .WithMany("Reservations")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Table");
@@ -367,7 +382,7 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                     b.HasOne("Seatify.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Seatify.Domain.Entities.Venue", "Venue")
@@ -397,7 +412,7 @@ namespace Seatify.Infrastructure.Persistence.Migrations
                     b.HasOne("Seatify.Domain.Entities.User", "Owner")
                         .WithMany("OwnedVenues")
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Owner");

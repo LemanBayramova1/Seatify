@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { GoogleLogin } from "@react-oauth/google";
 import { ROLES, USE_MOCKS, useAuthStore } from "../../store/useAuthStore";
+import { useToastStore } from "../../store/useToastStore";
+import { useThemeStore } from "../../store/useThemeStore";
 import { AZ_PHONE_PATTERN, formatAzPhone } from "../../lib/phone";
 import { GlassCard } from "../shared/GlassCard";
+
+// Google Identity Services translates its own button text from this locale code —
+// falls back to English for languages it doesn't ship a translation for (e.g. az).
+const GOOGLE_LOCALE = { az: "az", en: "en", ru: "ru", tr: "tr" };
+
+// <GoogleLogin> requires a <GoogleOAuthProvider> ancestor (wired in main.jsx only when this is
+// set) — rendering it without one throws at runtime, so gate on the same env var here instead
+// of assuming it's always configured.
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const EMPTY_FORM = {
   name: "",
@@ -21,7 +33,7 @@ const EMPTY_FORM = {
 };
 
 export function AuthModal() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isModalOpen = useAuthStore((s) => s.isModalOpen);
   const modalMode = useAuthStore((s) => s.modalMode);
   const modalPresetRole = useAuthStore((s) => s.modalPresetRole);
@@ -29,30 +41,73 @@ export function AuthModal() {
   const closeAuthModal = useAuthStore((s) => s.closeAuthModal);
   const login = useAuthStore((s) => s.login);
   const register = useAuthStore((s) => s.register);
+  const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
+  const forgotPassword = useAuthStore((s) => s.forgotPassword);
+  const resetPassword = useAuthStore((s) => s.resetPassword);
   const isSubmitting = useAuthStore((s) => s.isSubmitting);
+  const showToast = useToastStore((s) => s.showToast);
+  const theme = useThemeStore((s) => s.theme);
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // `forgotStep` drives a small sub-flow launched from the login tab: null (not active) →
+  // "request" (email only) → "code" (code + new password), entirely separate from modalMode
+  // so switching login/register tabs doesn't need to know this exists.
+  const [forgotStep, setForgotStep] = useState(null);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
   function reset() {
     setForm(EMPTY_FORM);
     setErrors({});
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setForgotStep(null);
+    setForgotEmail("");
+    setResetCode("");
+    setNewPassword("");
   }
 
   useEffect(() => {
     if (isModalOpen && modalPresetRole) {
       setForm((prev) => ({ ...prev, role: modalPresetRole }));
     }
+    if (isModalOpen) setForgotStep(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalOpen, modalPresetRole]);
 
   function switchMode(next) {
     setModalMode(next);
+    setForgotStep(null);
     setErrors({});
+  }
+
+  async function handleForgotRequest(e) {
+    e.preventDefault();
+    setErrors({});
+    try {
+      await forgotPassword(forgotEmail);
+      setForgotStep("code");
+    } catch (err) {
+      setErrors({ form: t(err.message) });
+    }
+  }
+
+  async function handleForgotReset(e) {
+    e.preventDefault();
+    setErrors({});
+    try {
+      await resetPassword(forgotEmail, resetCode, newPassword);
+      showToast(t("auth.resetSuccess"));
+      reset();
+      switchMode("login");
+    } catch (err) {
+      setErrors({ form: t(err.message) });
+    }
   }
 
   function patch(fields) {
@@ -97,6 +152,17 @@ export function AuthModal() {
     }
   }
 
+  async function handleGoogleSuccess(credentialResponse) {
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+      reset();
+      closeAuthModal();
+      showToast(t("auth.googleSuccess"));
+    } catch (err) {
+      setErrors({ form: t(err.message) });
+    }
+  }
+
   const isRestaurantOwner = form.role === ROLES.RESTAURANT_OWNER;
 
   return (
@@ -119,21 +185,76 @@ export function AuthModal() {
           >
             <GlassCard className="w-[min(460px,92vw)] p-6">
               <div className="mb-5 flex items-start justify-between">
-                <h2 className="text-lg font-bold text-slate-100">{modalMode === "login" ? t("auth.loginTitle") : t("auth.registerTitle")}</h2>
+                <h2 className="text-lg font-bold text-slate-100">
+                  {forgotStep ? t("auth.forgotPasswordTitle") : modalMode === "login" ? t("auth.loginTitle") : t("auth.registerTitle")}
+                </h2>
                 <button onClick={closeAuthModal} className="text-slate-400 hover:text-slate-200">
                   ✕
                 </button>
               </div>
 
-              <div className="mb-5 flex gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
-                <TabButton active={modalMode === "login"} onClick={() => switchMode("login")}>
-                  {t("auth.tabLogin")}
-                </TabButton>
-                <TabButton active={modalMode === "register"} onClick={() => switchMode("register")}>
-                  {t("auth.tabRegister")}
-                </TabButton>
-              </div>
+              {!forgotStep && (
+                <div className="mb-5 flex gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
+                  <TabButton active={modalMode === "login"} onClick={() => switchMode("login")}>
+                    {t("auth.tabLogin")}
+                  </TabButton>
+                  <TabButton active={modalMode === "register"} onClick={() => switchMode("register")}>
+                    {t("auth.tabRegister")}
+                  </TabButton>
+                </div>
+              )}
 
+              {forgotStep === "request" && (
+                <form onSubmit={handleForgotRequest} className="space-y-4">
+                  <p className="text-sm text-slate-400">{t("auth.forgotPasswordSubtitle")}</p>
+                  <div>
+                    <label className="label-text">{t("auth.email")}</label>
+                    <input
+                      type="email"
+                      autoFocus
+                      className="glass-input w-full"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                  {errors.form && <p className="text-xs text-red-400">{errors.form}</p>}
+                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
+                    {isSubmitting ? t("auth.submitting") : t("auth.sendResetCode")}
+                  </button>
+                  <button type="button" onClick={() => setForgotStep(null)} className="w-full text-center text-xs text-slate-400 hover:text-slate-200">
+                    {t("auth.backToLogin")}
+                  </button>
+                </form>
+              )}
+
+              {forgotStep === "code" && (
+                <form onSubmit={handleForgotReset} className="space-y-4">
+                  <p className="text-sm text-slate-400">{t("auth.resetCodeSent")}</p>
+                  <div>
+                    <label className="label-text">{t("auth.resetCode")}</label>
+                    <input
+                      autoFocus
+                      inputMode="numeric"
+                      maxLength={6}
+                      className="glass-input w-full tracking-[0.3em]"
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="000000"
+                    />
+                  </div>
+                  <PasswordField label={t("auth.newPassword")} value={newPassword} onChange={setNewPassword} visible={showPassword} onToggleVisible={() => setShowPassword((v) => !v)} />
+                  {errors.form && <p className="text-xs text-red-400">{errors.form}</p>}
+                  <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
+                    {isSubmitting ? t("auth.submitting") : t("auth.resetPasswordCta")}
+                  </button>
+                  <button type="button" onClick={() => setForgotStep(null)} className="w-full text-center text-xs text-slate-400 hover:text-slate-200">
+                    {t("auth.backToLogin")}
+                  </button>
+                </form>
+              )}
+
+              {!forgotStep && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {modalMode === "register" && (
                   <div>
@@ -198,6 +319,20 @@ export function AuthModal() {
                   visible={showPassword}
                   onToggleVisible={() => setShowPassword((v) => !v)}
                 />
+
+                {modalMode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(form.email);
+                      setForgotStep("request");
+                      setErrors({});
+                    }}
+                    className="-mt-2 block text-xs font-medium text-brand-300 hover:text-brand-200"
+                  >
+                    {t("auth.forgotPasswordLink")}
+                  </button>
+                )}
 
                 {modalMode === "register" && (
                   <>
@@ -276,8 +411,32 @@ export function AuthModal() {
                   {isSubmitting ? t("auth.submitting") : modalMode === "login" ? t("auth.loginCta") : t("auth.registerCta")}
                 </button>
 
+                {GOOGLE_CLIENT_ID && (
+                  <>
+                    <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500">
+                      <span className="h-px flex-1 bg-white/10" />
+                      {t("auth.orDivider")}
+                      <span className="h-px flex-1 bg-white/10" />
+                    </div>
+
+                    <div className="flex justify-center [&>div]:w-full">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => setErrors({ form: t("auth.errors.googleFailed") })}
+                        locale={GOOGLE_LOCALE[i18n.language] ?? "en"}
+                        theme={theme === "light" ? "outline" : "filled_black"}
+                        shape="pill"
+                        size="large"
+                        text="continue_with"
+                        width="360"
+                      />
+                    </div>
+                  </>
+                )}
+
                 {USE_MOCKS && <p className="text-center text-xs text-slate-500">{t("auth.mockNotice")}</p>}
               </form>
+              )}
             </GlassCard>
           </motion.div>
         </motion.div>

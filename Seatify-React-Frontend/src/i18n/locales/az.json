@@ -55,6 +55,19 @@
     "loginCta": "Daxil ol",
     "registerCta": "Hesab yarat",
     "mockNotice": "Demo rejim — hər hansı məlumatla demo qonaq kimi daxil olacaqsınız.",
+    "orDivider": "və ya",
+    "continueWithGoogle": "Google ilə daxil ol",
+    "googleSuccess": "Google hesabı ilə uğurla daxil oldunuz",
+    "forgotPasswordLink": "Şifrəni unutmusunuz?",
+    "forgotPasswordTitle": "Şifrəni sıfırlayın",
+    "forgotPasswordSubtitle": "E-poçt ünvanınızı daxil edin, sizə təsdiq kodu göndərəcəyik.",
+    "sendResetCode": "Kod göndər",
+    "resetCode": "Təsdiq kodu",
+    "newPassword": "Yeni şifrə",
+    "resetPasswordCta": "Şifrəni sıfırla",
+    "backToLogin": "← Girişə qayıt",
+    "resetCodeSent": "Kod e-poçtunuza göndərildi. Zəhmət olmasa daxil edin.",
+    "resetSuccess": "Şifrəniz uğurla dəyişdirildi. İndi daxil ola bilərsiniz.",
     "errors": {
       "invalidEmail": "Zəhmət olmasa düzgün e-poçt ünvanı daxil edin",
       "shortPassword": "Şifrə ən azı 4 simvoldan ibarət olmalıdır",
@@ -65,7 +78,12 @@
       "passwordMismatch": "Şifrələr uyğun gəlmir",
       "termsRequired": "İstifadəçi şərtləri və Məxfilik siyasətini qəbul etməlisiniz",
       "restaurantNameRequired": "Zəhmət olmasa restoranınızın adını daxil edin",
-      "cityRequired": "Zəhmət olmasa şəhər / region seçin"
+      "cityRequired": "Zəhmət olmasa şəhər / region seçin",
+      "googleFailed": "Google ilə daxil olmaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.",
+      "forgotPasswordFailed": "Kod göndərilə bilmədi. Zəhmət olmasa yenidən cəhd edin.",
+      "resetPasswordFailed": "Kod yanlışdır və ya vaxtı bitib.",
+      "verifyOtpFailed": "Kod yanlışdır və ya vaxtı bitib.",
+      "sendOtpFailed": "Kod göndərilə bilmədi. Zəhmət olmasa yenidən cəhd edin."
     }
   },
   "builder": {
@@ -147,6 +165,23 @@
     "step3Body": "Daxil olun, məlumatlarınızı təsdiqləyin — sifarişiniz hazırdır.",
     "bottomCtaTitle": "Masanızı tapmağa hazırsınız?",
     "bottomCtaButton": "Restoranlara bax"
+  },
+  "otp": {
+    "title": "E-poçtunuzu təsdiqləyin",
+    "subtitle": "{{email}} ünvanına göndərdiyimiz 6 rəqəmli kodu daxil edin.",
+    "code": "Təsdiq kodu",
+    "verifyCta": "Təsdiqlə",
+    "resendCta": "Kodu yenidən göndər",
+    "resent": "Kod yenidən göndərildi",
+    "welcome": "Xoş gəldiniz, {{name}}!"
+  },
+  "chatbot": {
+    "header": "Seatify Dəstək",
+    "onlineStatus": "Onlayn",
+    "greeting": "Salam! Sizə necə kömək edə bilərəm?",
+    "inputPlaceholder": "Mesajınızı yazın…",
+    "send": "Göndər",
+    "error": "Üzr istəyirik, mesajınızı göndərmək mümkün olmadı. Zəhmət olmasa yenidən cəhd edin."
   },
   "restaurants": {
     "heroTitle": "Masanızı tapın",

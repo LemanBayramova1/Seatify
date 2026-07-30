@@ -44,6 +44,10 @@ public static class DependencyInjection
         services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<ReservationOptions>(configuration.GetSection(ReservationOptions.SectionName));
+        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.Configure<GoogleAuthOptions>(configuration.GetSection(GoogleAuthOptions.SectionName));
+        services.Configure<OpenRouterOptions>(configuration.GetSection(OpenRouterOptions.SectionName));
+        services.AddHttpClient(nameof(OpenRouterChatbotService));
 
         if (cacheOptions.Provider.Equals("Redis", StringComparison.OrdinalIgnoreCase))
         {
@@ -65,6 +69,8 @@ public static class DependencyInjection
         services.AddScoped<IReservationService, ReservationService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IReviewService, ReviewService>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<IChatbotService, OpenRouterChatbotService>();
 
         services.AddHostedService<ExpiredHoldReleaseService>();
 

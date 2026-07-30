@@ -16,6 +16,10 @@ public class Venue : BaseEntity
     /// rather than a child table — display/filter metadata only, never queried by tag.</summary>
     public string? CuisineTypes { get; set; }
 
+    /// <summary>Free-text operating hours (e.g. "Mon-Sun 10:00-23:00"). Display/context metadata
+    /// only, same pattern as CuisineTypes — not structured per-day, not queried against.</summary>
+    public string? OperatingHours { get; set; }
+
     /// <summary>Comma-separated photo gallery URLs, in addition to the single cover `ImageUrl`.</summary>
     public string? GalleryImageUrls { get; set; }
 

@@ -2,7 +2,10 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Header } from "./components/layout/Header";
 import { AuthModal } from "./components/auth/AuthModal";
+import { OtpVerificationModal } from "./components/auth/OtpVerificationModal";
 import { RequireRole } from "./components/auth/RequireRole";
+import { Toast } from "./components/shared/Toast";
+import { ChatbotWidget } from "./components/chatbot/ChatbotWidget";
 import { ROLES, useAuthStore } from "./store/useAuthStore";
 import AdminBuilderPage from "./pages/AdminBuilderPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
@@ -67,6 +70,9 @@ export default function App() {
       </AnimatePresence>
 
       <AuthModal />
+      <OtpVerificationModal />
+      <Toast />
+      <ChatbotWidget />
     </div>
   );
 }

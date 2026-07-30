@@ -109,17 +109,13 @@ public class AdminService : IAdminService
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Permanently removes a venue and everything under it: its floor plans, tables,
-    /// reviews (cascade-configured), and reservations (deleted explicitly first, since
-    /// Table→Reservation is a Restrict relationship that would otherwise block the delete).</summary>
+    /// <summary>Permanently removes a venue and everything under it: floor plans, tables,
+    /// reservations, and reviews all cascade-delete at the DB level (see VenueConfiguration /
+    /// FloorPlanConfiguration / TableConfiguration / ReviewConfiguration).</summary>
     public async Task DeleteVenueAsync(Guid venueId)
     {
         var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == venueId)
             ?? throw new NotFoundException(nameof(Venue), venueId);
-
-        var tableIds = await _db.Tables.Where(t => t.FloorPlan.VenueId == venueId).Select(t => t.Id).ToListAsync();
-        var reservations = await _db.Reservations.Where(r => tableIds.Contains(r.TableId)).ToListAsync();
-        _db.Reservations.RemoveRange(reservations);
 
         _db.Venues.Remove(venue);
         await _db.SaveChangesAsync();
@@ -173,9 +169,11 @@ public class AdminService : IAdminService
         await _db.SaveChangesAsync();
     }
 
-    /// <summary>Hard-deletes a user. Refuses to delete Admin accounts, and refuses to delete
-    /// anyone with existing venues, reservations, or reviews — those relationships are Restrict
-    /// at the DB level, and deactivating is the safe alternative for an account with history.</summary>
+    /// <summary>Hard-deletes a user and cascades: owned venues (and everything under them —
+    /// floor plans, tables, every guest's reservations, reviews), the user's own reservations,
+    /// and the user's own reviews all cascade-delete at the DB level (see VenueConfiguration /
+    /// ReservationConfiguration / ReviewConfiguration). Admin accounts can never be deleted this
+    /// way — deactivate instead.</summary>
     public async Task DeleteUserAsync(Guid userId)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
@@ -184,14 +182,6 @@ public class AdminService : IAdminService
         if (user.Role == UserRole.Admin)
         {
             throw new ConflictException("Admin accounts cannot be deleted.");
-        }
-
-        var hasVenues = await _db.Venues.AnyAsync(v => v.OwnerId == userId);
-        var hasReservations = await _db.Reservations.AnyAsync(r => r.UserId == userId);
-        var hasReviews = await _db.Reviews.AnyAsync(r => r.UserId == userId);
-        if (hasVenues || hasReservations || hasReviews)
-        {
-            throw new ConflictException("This user has existing venues, reservations, or reviews — deactivate the account instead of deleting it.");
         }
 
         _db.Users.Remove(user);

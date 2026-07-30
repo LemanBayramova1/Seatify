@@ -17,6 +17,14 @@
     background-attachment: fixed;
   }
 
+  /* A warmer, rounder display face for headings only — body copy stays on Inter for maximum
+   * readability. Applied globally here (rather than a font-display class on every heading
+   * across the app) so every page picks it up automatically. */
+  h1, h2, h3 {
+    font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.015em;
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;

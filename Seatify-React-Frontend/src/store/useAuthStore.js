@@ -87,6 +87,8 @@ export const useAuthStore = create((set) => ({
   isModalOpen: false,
   modalMode: "login",
   modalPresetRole: null,
+  otpModalOpen: false,
+  pendingOtpEmail: null,
 
   /** `presetRole` pre-selects a role on the register tab — e.g. the landing page's
    * "Restoran Sahibisiniz?" CTA opens straight into the Restaurant Owner registration form. */
@@ -169,7 +171,7 @@ export const useAuthStore = create((set) => ({
     }
 
     try {
-      const { data } = await http.post("/auth/register", {
+      await http.post("/auth/register", {
         name: name.trim(),
         email: email.trim(),
         password,
@@ -181,18 +183,96 @@ export const useAuthStore = create((set) => ({
         businessEmail: extra.businessEmail || undefined,
         businessPhone: extra.businessPhone || undefined,
       });
-      const user = { ...data.user, initials: initials(data.user.name) };
-      persistUser(user, data.token);
-      set({ user, isSubmitting: false });
-      return user;
+      // Deliberately does NOT log the user in — the account is created unverified, and the
+      // real session (token) only arrives once verifyOtp succeeds below.
+      set({ isSubmitting: false, isModalOpen: false, otpModalOpen: true, pendingOtpEmail: email.trim() });
     } catch (err) {
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.registerFailed");
     }
   },
 
+  /**
+   * "Continue with Google" — always hits the real API, even in mock mode: there's no
+   * meaningful mock for a signed Google ID token, and validating it is the whole point.
+   */
+  async loginWithGoogle(idToken) {
+    set({ isSubmitting: true });
+    try {
+      const { data } = await http.post("/auth/google", { idToken, credential: idToken });
+      const user = { ...data.user, initials: initials(data.user.name) };
+      persistUser(user, data.token);
+      set({ user, isSubmitting: false });
+      return user;
+    } catch (err) {
+      set({ isSubmitting: false });
+      throw new Error(err.response?.data?.error ?? "auth.errors.googleFailed");
+    }
+  },
+
+  /** Always hits the real API (even in mock mode) — this is exercised end-to-end against the
+   * .NET auth/forgot-password endpoint, there's nothing meaningful to fake here. */
+  async forgotPassword(email) {
+    set({ isSubmitting: true });
+    try {
+      await http.post("/auth/forgot-password", { email: email.trim() });
+      set({ isSubmitting: false });
+    } catch (err) {
+      set({ isSubmitting: false });
+      throw new Error(err.response?.data?.error ?? "auth.errors.forgotPasswordFailed");
+    }
+  },
+
+  async resetPassword(email, code, newPassword) {
+    set({ isSubmitting: true });
+    try {
+      await http.post("/auth/reset-password", { email: email.trim(), code: code.trim(), newPassword });
+      set({ isSubmitting: false });
+    } catch (err) {
+      set({ isSubmitting: false });
+      throw new Error(err.response?.data?.error ?? "auth.errors.resetPasswordFailed");
+    }
+  },
+
+  /** The step that actually completes registration: exchanges a valid OTP for the real
+   * session (token + user), the same shape login()/loginWithGoogle() produce. */
+  async verifyOtp(email, code) {
+    set({ isSubmitting: true });
+    try {
+      const { data } = await http.post("/auth/verify-otp", { email: email.trim(), code: code.trim() });
+      const user = { ...data.user, initials: initials(data.user.name) };
+      persistUser(user, data.token);
+      set({ user, isSubmitting: false, otpModalOpen: false, pendingOtpEmail: null });
+      return user;
+    } catch (err) {
+      set({ isSubmitting: false });
+      throw new Error(err.response?.data?.error ?? "auth.errors.verifyOtpFailed");
+    }
+  },
+
+  async resendOtp(email) {
+    set({ isSubmitting: true });
+    try {
+      await http.post("/auth/send-otp", { email: email.trim() });
+      set({ isSubmitting: false });
+    } catch (err) {
+      set({ isSubmitting: false });
+      throw new Error(err.response?.data?.error ?? "auth.errors.sendOtpFailed");
+    }
+  },
+
+  closeOtpModal() {
+    set({ otpModalOpen: false, pendingOtpEmail: null });
+  },
+
   logout() {
     persistUser(null);
     set({ user: null });
+    // A hard navigation (not react-router's navigate) so every store resets to its initial
+    // state too — this is called from a zustand store with no router context available, and a
+    // full reload is the simplest way to guarantee no other store keeps stale per-user data.
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
   },
 }));

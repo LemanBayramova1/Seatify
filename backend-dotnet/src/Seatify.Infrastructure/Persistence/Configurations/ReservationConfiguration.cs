@@ -20,7 +20,7 @@ public class ReservationConfiguration : IEntityTypeConfiguration<Reservation>
         builder.HasOne(r => r.User)
             .WithMany(u => u.Reservations)
             .HasForeignKey(r => r.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Covers the per-slot availability/conflict query (TableId + ReservationDate + TimeSlot +
         // Status) in ReservationService.HoldAsync and FloorPlanService.ApplySlotAvailabilityAsync.

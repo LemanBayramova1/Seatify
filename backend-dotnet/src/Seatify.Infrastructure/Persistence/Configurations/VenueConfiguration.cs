@@ -29,7 +29,7 @@ public class VenueConfiguration : IEntityTypeConfiguration<Venue>
         builder.HasOne(v => v.Owner)
             .WithMany(u => u.OwnedVenues)
             .HasForeignKey(v => v.OwnerId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(v => v.OwnerId);
     }

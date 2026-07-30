@@ -22,7 +22,7 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.HasOne(r => r.User)
             .WithMany()
             .HasForeignKey(r => r.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         // One review per guest per venue — a resubmission updates their existing review
         // instead of creating a duplicate (see ReviewService.CreateAsync).

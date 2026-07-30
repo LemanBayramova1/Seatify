@@ -22,7 +22,7 @@ public class TableConfiguration : IEntityTypeConfiguration<Table>
         builder.HasMany(t => t.Reservations)
             .WithOne(r => r.Table)
             .HasForeignKey(r => r.TableId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(t => t.FloorPlanId);
         builder.HasIndex(t => new { t.FloorPlanId, t.IsActive });
