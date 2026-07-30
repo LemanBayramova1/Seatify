@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Seatify.Api/Seatify.Api.csproj" />
-    <Project Path="src/Seatify.Application/Seatify.Application.csproj" />
-    <Project Path="src/Seatify.Domain/Seatify.Domain.csproj" />
-    <Project Path="src/Seatify.Infrastructure/Seatify.Infrastructure.csproj" />
-  </Folder>
-</Solution>

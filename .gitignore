@@ -5,8 +5,5 @@ build/
 .env.*.local
 *.log
 .DS_Store
-frontend/dist/
-backend/dist/
-backend/prisma/migrations/dev.db*
 .vscode/
 .idea/

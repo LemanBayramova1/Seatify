@@ -2,12 +2,12 @@
   "name": "seatify",
   "private": true,
   "workspaces": [
-    "Seatify-React-Frontend"
+    "front"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=Seatify-React-Frontend",
-    "build": "npm run build --workspace=Seatify-React-Frontend",
-    "dev:backend": "dotnet run --project backend-dotnet/src/Seatify.Api",
+    "dev": "npm run dev --workspace=front",
+    "build": "npm run build --workspace=front",
+    "dev:backend": "dotnet run --project backend",
     "dev:full": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev\"",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/Seatify.Api.csproj" />
+    <Project Path="backend/Seatify.Application/Seatify.Application.csproj" />
+    <Project Path="backend/Seatify.Domain/Seatify.Domain.csproj" />
+    <Project Path="backend/Seatify.Infrastructure/Seatify.Infrastructure.csproj" />
+  </Folder>
+</Solution>
