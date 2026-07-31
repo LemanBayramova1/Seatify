@@ -19,8 +19,10 @@ import {
   approveReservation,
   deleteAdminUser,
   deleteAdminVenue,
+  deleteReview,
   getAdminAnalytics,
   getAdminReservations,
+  getAdminReviews,
   getAdminUsers,
   getAdminVenues,
   rejectReservation,
@@ -33,7 +35,7 @@ import { ConfirmDialog } from "../components/shared/ConfirmDialog";
 import { EditUserModal } from "../components/admin/EditUserModal";
 import { EditVenueModal } from "../components/admin/EditVenueModal";
 
-const TABS = ["overview", "venues", "users", "reservations"];
+const TABS = ["overview", "venues", "users", "reservations", "reviews"];
 const STATUS_OPTIONS = ["Confirmed", "Held", "Cancelled", "Expired"];
 const ROLE_OPTIONS = ["Customer", "RestaurantOwner", "Admin"];
 const CHART_COLORS = { brand: "#5b7cfa", confirmed: "#22c55e", held: "#f5b23a", cancelled: "#ef4444", expired: "#64748b" };
@@ -58,6 +60,9 @@ export default function PlatformAdminPage() {
   const [reservationFilters, setReservationFilters] = useState({ date: "", status: "" });
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("");
+  const [reviews, setReviews] = useState(null);
+  const [reviewVenueFilter, setReviewVenueFilter] = useState("");
+  const [reviewRatingFilter, setReviewRatingFilter] = useState("");
   const [loadError, setLoadError] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
@@ -124,6 +129,35 @@ export default function PlatformAdminPage() {
     };
   }, [tab, reservationFilters]);
 
+  useEffect(() => {
+    if (tab !== "reviews") return;
+    let cancelled = false;
+    getAdminReviews()
+      .then((data) => {
+        if (!cancelled) setReviews(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError("platformAdmin.loadFailed");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
+
+  const filteredReviews = useMemo(() => {
+    if (!reviews) return reviews;
+    return reviews.filter((r) => {
+      const matchesVenue = !reviewVenueFilter || r.venueName === reviewVenueFilter;
+      const matchesRating = !reviewRatingFilter || r.rating === Number(reviewRatingFilter);
+      return matchesVenue && matchesRating;
+    });
+  }, [reviews, reviewVenueFilter, reviewRatingFilter]);
+
+  const reviewVenueOptions = useMemo(() => {
+    if (!reviews) return [];
+    return [...new Set(reviews.map((r) => r.venueName))].sort();
+  }, [reviews]);
+
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLowerCase();
     return users.filter((u) => {
@@ -181,12 +215,16 @@ export default function PlatformAdminPage() {
 
   async function handleConfirmDelete() {
     setActionError(null);
-    const { type, id } = confirmDelete;
+    const { type, id, venueId } = confirmDelete;
     try {
       if (type === "user") {
         await deleteAdminUser(id);
         setUsers((prev) => prev.filter((u) => u.id !== id));
         flashMessage(t("platformAdmin.userDeleted"));
+      } else if (type === "review") {
+        await deleteReview(venueId, id);
+        setReviews((prev) => prev.filter((r) => r.id !== id));
+        flashMessage(t("platformAdmin.reviewDeleted"));
       } else {
         await deleteAdminVenue(id);
         setVenues((prev) => prev.filter((v) => v.id !== id));
@@ -290,6 +328,18 @@ export default function PlatformAdminPage() {
           onReject={handleReject}
         />
       )}
+      {tab === "reviews" && (
+        <ReviewsTab
+          t={t}
+          reviews={filteredReviews}
+          venueFilter={reviewVenueFilter}
+          onVenueFilterChange={setReviewVenueFilter}
+          ratingFilter={reviewRatingFilter}
+          onRatingFilterChange={setReviewRatingFilter}
+          venueOptions={reviewVenueOptions}
+          onDelete={(r) => setConfirmDelete({ type: "review", id: r.id, venueId: r.venueId, name: r.venueName })}
+        />
+      )}
 
       {editingUser && <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} onSave={handleSaveUser} />}
       {editingVenueId && (
@@ -297,10 +347,21 @@ export default function PlatformAdminPage() {
       )}
       {confirmDelete && (
         <ConfirmDialog
-          title={t(confirmDelete.type === "user" ? "platformAdmin.deleteUserConfirmTitle" : "platformAdmin.deleteVenueConfirmTitle")}
-          body={t(confirmDelete.type === "user" ? "platformAdmin.deleteUserConfirmBody" : "platformAdmin.deleteVenueConfirmBody", {
-            name: confirmDelete.name,
-          })}
+          title={t(
+            confirmDelete.type === "user"
+              ? "platformAdmin.deleteUserConfirmTitle"
+              : confirmDelete.type === "review"
+                ? "platformAdmin.deleteReviewConfirmTitle"
+                : "platformAdmin.deleteVenueConfirmTitle",
+          )}
+          body={t(
+            confirmDelete.type === "user"
+              ? "platformAdmin.deleteUserConfirmBody"
+              : confirmDelete.type === "review"
+                ? "platformAdmin.deleteReviewConfirmBody"
+                : "platformAdmin.deleteVenueConfirmBody",
+            { name: confirmDelete.name, venue: confirmDelete.name },
+          )}
           confirmLabel={t("common.delete")}
           onConfirm={handleConfirmDelete}
           onCancel={() => setConfirmDelete(null)}
@@ -607,6 +668,73 @@ function ReservationsTab({ t, reservations, filters, onFiltersChange, onApprove,
             </tbody>
           </table>
         </div>
+      )}
+    </GlassCard>
+  );
+}
+
+function ReviewsTab({ t, reviews, venueFilter, onVenueFilterChange, ratingFilter, onRatingFilterChange, venueOptions, onDelete }) {
+  if (reviews === null) {
+    return <p className="py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>;
+  }
+
+  return (
+    <GlassCard className="overflow-x-auto p-5">
+      <div className="mb-4 flex flex-wrap gap-2">
+        <select className="glass-input" value={venueFilter} onChange={(e) => onVenueFilterChange(e.target.value)}>
+          <option value="">{t("platformAdmin.filterAnyVenue")}</option>
+          {venueOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <select className="glass-input" value={ratingFilter} onChange={(e) => onRatingFilterChange(e.target.value)}>
+          <option value="">{t("platformAdmin.filterAnyRating")}</option>
+          {[5, 4, 3, 2, 1].map((n) => (
+            <option key={n} value={n}>
+              {"★".repeat(n)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {reviews.length === 0 ? (
+        <p className="py-8 text-center text-sm text-slate-400">{t("platformAdmin.noReviewsMatch")}</p>
+      ) : (
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-500">
+              <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colVenue")}</th>
+              <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colCustomer")}</th>
+              <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colRating")}</th>
+              <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colComment")}</th>
+              <th className="pb-2 pr-4 font-medium">{t("admin.colDate")}</th>
+              <th className="pb-2 pr-4 font-medium">{t("platformAdmin.colOwnerReply")}</th>
+              <th className="pb-2 font-medium">{t("platformAdmin.colActions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reviews.map((r) => (
+              <tr key={r.id} className="border-b border-white/5 align-top text-slate-200 last:border-0">
+                <td className="py-2.5 pr-4 font-semibold">{r.venueName}</td>
+                <td className="py-2.5 pr-4 text-slate-400">{r.userName}</td>
+                <td className="py-2.5 pr-4 text-amber-300">
+                  {"★".repeat(r.rating)}
+                  <span className="text-slate-600">{"★".repeat(5 - r.rating)}</span>
+                </td>
+                <td className="max-w-[240px] py-2.5 pr-4 text-slate-400">{r.comment ?? "—"}</td>
+                <td className="py-2.5 pr-4 text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</td>
+                <td className="max-w-[220px] py-2.5 pr-4 text-slate-400">{r.ownerReply ?? "—"}</td>
+                <td className="py-2.5">
+                  <button className="btn-danger px-3 py-1 text-xs" onClick={() => onDelete(r)}>
+                    {t("platformAdmin.delete")}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </GlassCard>
   );

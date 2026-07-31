@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Seatify.Api.Hubs;
@@ -16,6 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<ITableStateNotifier, SignalRTableStateNotifier>();
+builder.Services.AddScoped<INotificationRealtimeNotifier, SignalRNotificationNotifier>();
+builder.Services.AddSingleton<IUserIdProvider, NameIdentifierUserIdProvider>();
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
@@ -157,5 +160,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<TableStateHub>("/hubs/table-state");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();

@@ -11,10 +11,12 @@ namespace Seatify.Infrastructure.Services;
 public class NotificationService : INotificationService
 {
     private readonly AppDbContext _db;
+    private readonly INotificationRealtimeNotifier _realtimeNotifier;
 
-    public NotificationService(AppDbContext db)
+    public NotificationService(AppDbContext db, INotificationRealtimeNotifier realtimeNotifier)
     {
         _db = db;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<List<NotificationDto>> GetForUserAsync(Guid userId)
@@ -59,10 +61,15 @@ public class NotificationService : INotificationService
             Title = "Yeni restoran!",
             Message = $"Yeni restoran açıldı: {venueName}!",
             Type = NotificationType.NewVenue
-        });
+        }).ToList();
 
         _db.Notifications.AddRange(notifications);
         await _db.SaveChangesAsync();
+
+        foreach (var notification in notifications)
+        {
+            await _realtimeNotifier.NotifyUserAsync(notification.UserId, ToDto(notification));
+        }
     }
 
     public async Task NotifyTableAvailableAsync(Guid venueId, Guid excludeUserId)
@@ -90,36 +97,53 @@ public class NotificationService : INotificationService
             Title = "Masa açıldı!",
             Message = $"{venue.Name} restoranında masa açıldı!",
             Type = NotificationType.TableAvailable
-        });
+        }).ToList();
 
         _db.Notifications.AddRange(notifications);
         await _db.SaveChangesAsync();
+
+        foreach (var notification in notifications)
+        {
+            await _realtimeNotifier.NotifyUserAsync(notification.UserId, ToDto(notification));
+        }
     }
 
+    /// <summary>Persists a new-review notification for the venue owner and pushes it live via
+    /// SignalR to the owner and to every connected Admin. Called unconditionally for every
+    /// review submission — including a guest updating their existing review — so the owner is
+    /// never silently skipped.</summary>
     public async Task NotifyNewReviewAsync(Guid ownerId, string venueName)
     {
-        _db.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = ownerId,
             Title = "Yeni rəy!",
             Message = $"Restoranınıza yeni rəy yazıldı: {venueName}",
             Type = NotificationType.NewReview
-        });
+        };
 
+        _db.Notifications.Add(notification);
         await _db.SaveChangesAsync();
+
+        var dto = ToDto(notification);
+        await _realtimeNotifier.NotifyUserAsync(ownerId, dto);
+        await _realtimeNotifier.NotifyAdminsAsync(dto);
     }
 
     public async Task NotifyNewBookingAsync(Guid ownerId, string venueName, string tableLabel)
     {
-        _db.Notifications.Add(new Notification
+        var notification = new Notification
         {
             UserId = ownerId,
             Title = "Yeni bron!",
             Message = $"{venueName} üçün yeni masa bron edildi: {tableLabel}",
             Type = NotificationType.NewBooking
-        });
+        };
 
+        _db.Notifications.Add(notification);
         await _db.SaveChangesAsync();
+
+        await _realtimeNotifier.NotifyUserAsync(ownerId, ToDto(notification));
     }
 
     private static NotificationDto ToDto(Notification n) => new()

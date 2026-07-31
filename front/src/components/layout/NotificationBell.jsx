@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { subscribeToNotifications } from "../../services/notificationHub";
 import { useNotificationsStore } from "../../store/useNotificationsStore";
 
 const POLL_INTERVAL_MS = 30_000;
@@ -21,6 +22,7 @@ export function NotificationBell() {
   const close = useNotificationsStore((s) => s.close);
   const fetchNotifications = useNotificationsStore((s) => s.fetch);
   const markRead = useNotificationsStore((s) => s.markRead);
+  const receive = useNotificationsStore((s) => s.receive);
   const ref = useRef(null);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -30,6 +32,12 @@ export function NotificationBell() {
     const interval = setInterval(fetchNotifications, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  // Live push on top of the poll above — a new review/booking notification appears (and bumps
+  // the unread badge) the instant NotificationHub broadcasts it, no refresh needed.
+  useEffect(() => {
+    return subscribeToNotifications(receive);
+  }, [receive]);
 
   useEffect(() => {
     function handleClickOutside(e) {

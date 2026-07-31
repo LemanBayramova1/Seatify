@@ -92,4 +92,10 @@ public class AdminController : ApiControllerBase
         await _adminService.RejectReservationAsync(id);
         return NoContent();
     }
+
+    [HttpGet("reviews")]
+    public async Task<ActionResult<List<AdminReviewDto>>> GetReviews()
+    {
+        return Ok(await _adminService.GetAllReviewsAsync());
+    }
 }

@@ -13,6 +13,7 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.HasKey(r => r.Id);
 
         builder.Property(r => r.Comment).HasMaxLength(1000);
+        builder.Property(r => r.OwnerReply).HasMaxLength(1000);
 
         builder.HasOne(r => r.Venue)
             .WithMany(v => v.Reviews)

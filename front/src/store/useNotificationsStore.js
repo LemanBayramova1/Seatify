@@ -24,6 +24,16 @@ export const useNotificationsStore = create((set) => ({
     }
   },
 
+  /** Prepends a notification pushed live over SignalR, ignoring a duplicate id (e.g. a push
+   * that arrives just before/after a poll already picked up the same row). */
+  receive(notification) {
+    set((s) =>
+      s.notifications.some((n) => n.id === notification.id)
+        ? s
+        : { notifications: [notification, ...s.notifications] },
+    );
+  },
+
   async markRead(id) {
     // Optimistic — the bell shouldn't wait on a round-trip to feel responsive; a later
     // fetch() reconciles if the request actually failed.

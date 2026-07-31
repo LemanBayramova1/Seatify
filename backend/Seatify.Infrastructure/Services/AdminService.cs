@@ -291,6 +291,29 @@ public class AdminService : IAdminService
         await _notificationService.NotifyTableAvailableAsync(reservation.Table.FloorPlan.VenueId, reservation.UserId);
     }
 
+    public async Task<List<AdminReviewDto>> GetAllReviewsAsync()
+    {
+        var reviews = await _db.Reviews
+            .Include(r => r.User)
+            .Include(r => r.Venue)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        return reviews.Select(r => new AdminReviewDto
+        {
+            Id = r.Id,
+            VenueId = r.VenueId,
+            VenueName = r.Venue.Name,
+            UserId = r.UserId,
+            UserName = r.User.Name,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            CreatedAt = r.CreatedAt,
+            OwnerReply = r.OwnerReply,
+            OwnerReplyDate = r.OwnerReplyDate
+        }).ToList();
+    }
+
     private static ReservationDto ToDto(Reservation r) => new()
     {
         Id = r.Id,

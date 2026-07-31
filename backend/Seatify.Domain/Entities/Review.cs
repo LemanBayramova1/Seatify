@@ -13,4 +13,8 @@ public class Review : BaseEntity
     /// <summary>1-5 star rating.</summary>
     public int Rating { get; set; }
     public string? Comment { get; set; }
+
+    /// <summary>The venue owner's public reply to this review, if any.</summary>
+    public string? OwnerReply { get; set; }
+    public DateTime? OwnerReplyDate { get; set; }
 }

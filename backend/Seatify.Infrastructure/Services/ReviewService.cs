@@ -40,7 +40,6 @@ public class ReviewService : IReviewService
         }
 
         var review = await _db.Reviews.FirstOrDefaultAsync(r => r.VenueId == venueId && r.UserId == userId);
-        var isNewReview = review is null;
         if (review is not null)
         {
             review.Rating = request.Rating;
@@ -60,10 +59,9 @@ public class ReviewService : IReviewService
 
         await _db.SaveChangesAsync();
 
-        if (isNewReview)
-        {
-            await _notificationService.NotifyNewReviewAsync(venue.OwnerId, venue.Name);
-        }
+        // Every submission notifies the owner — including a guest editing their existing
+        // review — so the owner is never silently skipped on a resubmission.
+        await _notificationService.NotifyNewReviewAsync(venue.OwnerId, venue.Name);
 
         var user = await _db.Users.FindAsync(userId);
         return new ReviewDto
@@ -74,8 +72,66 @@ public class ReviewService : IReviewService
             UserName = user?.Name ?? "Guest",
             Rating = review.Rating,
             Comment = review.Comment,
-            CreatedAt = review.CreatedAt
+            CreatedAt = review.CreatedAt,
+            OwnerReply = review.OwnerReply,
+            OwnerReplyDate = review.OwnerReplyDate
         };
+    }
+
+    public async Task<ReviewDto> ReplyAsync(Guid reviewId, Guid callerId, bool callerIsAdmin, ReplyReviewRequestDto request)
+    {
+        var review = await _db.Reviews
+            .Include(r => r.User)
+            .Include(r => r.Venue)
+            .FirstOrDefaultAsync(r => r.Id == reviewId)
+            ?? throw new NotFoundException(nameof(Review), reviewId);
+
+        if (!callerIsAdmin && review.Venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        review.OwnerReply = request.Reply.Trim();
+        review.OwnerReplyDate = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return ToDto(review);
+    }
+
+    public async Task<ReviewDto> DeleteReplyAsync(Guid reviewId, Guid callerId, bool callerIsAdmin)
+    {
+        var review = await _db.Reviews
+            .Include(r => r.User)
+            .Include(r => r.Venue)
+            .FirstOrDefaultAsync(r => r.Id == reviewId)
+            ?? throw new NotFoundException(nameof(Review), reviewId);
+
+        if (!callerIsAdmin && review.Venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        review.OwnerReply = null;
+        review.OwnerReplyDate = null;
+        await _db.SaveChangesAsync();
+
+        return ToDto(review);
+    }
+
+    public async Task DeleteAsync(Guid reviewId, Guid callerId, bool callerIsAdmin)
+    {
+        var review = await _db.Reviews
+            .Include(r => r.Venue)
+            .FirstOrDefaultAsync(r => r.Id == reviewId)
+            ?? throw new NotFoundException(nameof(Review), reviewId);
+
+        if (!callerIsAdmin && review.Venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        _db.Reviews.Remove(review);
+        await _db.SaveChangesAsync();
     }
 
     private static ReviewDto ToDto(Review r) => new()
@@ -86,6 +142,8 @@ public class ReviewService : IReviewService
         UserName = r.User.Name,
         Rating = r.Rating,
         Comment = r.Comment,
-        CreatedAt = r.CreatedAt
+        CreatedAt = r.CreatedAt,
+        OwnerReply = r.OwnerReply,
+        OwnerReplyDate = r.OwnerReplyDate
     };
 }

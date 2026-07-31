@@ -34,4 +34,7 @@ public interface IAdminService
 
     /// <summary>Cancels a Held or Confirmed reservation, freeing its table.</summary>
     Task RejectReservationAsync(Guid reservationId);
+
+    /// <summary>Every review across every venue on the platform, newest first.</summary>
+    Task<List<AdminReviewDto>> GetAllReviewsAsync();
 }

@@ -399,6 +399,55 @@ export async function submitReview(venueId, { rating, comment }) {
   return data;
 }
 
+function findMockReview(venueId, reviewId) {
+  const reviews = readReviews(venueId);
+  const index = reviews.findIndex((r) => r.id === reviewId);
+  return { reviews, index };
+}
+
+/** Adds or updates the venue owner's reply to a review (Owner or Admin only). */
+export async function replyToReview(venueId, reviewId, reply) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const { reviews, index } = findMockReview(venueId, reviewId);
+    if (index < 0) throw new Error("Review not found.");
+    reviews[index] = { ...reviews[index], ownerReply: reply.trim(), ownerReplyDate: new Date().toISOString() };
+    writeReviews(venueId, reviews);
+    return reviews[index];
+  }
+  const { data } = await http.post(`/reviews/${reviewId}/reply`, { reply });
+  return data;
+}
+
+/** Removes the venue owner's reply from a review, leaving the review itself intact. */
+export async function deleteReviewReply(venueId, reviewId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const { reviews, index } = findMockReview(venueId, reviewId);
+    if (index < 0) throw new Error("Review not found.");
+    reviews[index] = { ...reviews[index], ownerReply: null, ownerReplyDate: null };
+    writeReviews(venueId, reviews);
+    return reviews[index];
+  }
+  const { data } = await http.delete(`/reviews/${reviewId}/reply`);
+  return data;
+}
+
+/** Permanently deletes a review (Owner of the venue, or Admin, only). */
+export async function deleteReview(venueId, reviewId) {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    const { reviews, index } = findMockReview(venueId, reviewId);
+    if (index >= 0) {
+      reviews.splice(index, 1);
+      writeReviews(venueId, reviews);
+    }
+    return { ok: true };
+  }
+  await http.delete(`/reviews/${reviewId}`);
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Notifications (Customer + Restaurant Owner bell)
 // ---------------------------------------------------------------------------
@@ -533,6 +582,18 @@ export async function deleteAdminVenue(venueId) {
   }
   await http.delete(`/admin/venues/${venueId}`);
   return { ok: true };
+}
+
+/** Every review across every venue on the platform, newest first — Admin-only moderation view. */
+export async function getAdminReviews() {
+  if (USE_MOCKS) {
+    await wait(jitter());
+    return RESTAURANTS.flatMap((r) =>
+      readReviews(r.id).map((review) => ({ ...review, venueId: r.id, venueName: r.name })),
+    ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+  const { data } = await http.get("/admin/reviews");
+  return data;
 }
 
 const MOCK_USER_ACTIVE_KEY = "seatify.mock.userActive.v1";
