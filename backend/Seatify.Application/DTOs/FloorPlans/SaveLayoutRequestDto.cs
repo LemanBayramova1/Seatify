@@ -21,6 +21,10 @@ public class SaveLayoutFloorPlanRequestDto
     public double CanvasHeight { get; set; } = 700;
 
     public List<SaveTableRequestDto> Tables { get; set; } = new();
+
+    /// <summary>Decorative elements (doors, windows, walls, stage, bar) for this floor — stored
+    /// as-is in FloorPlan.LayoutData, never validated against Table's rules.</summary>
+    public List<LayoutElementDto> Elements { get; set; } = new();
 }
 
 /// <summary>Replaces a restaurant's entire multi-floor layout (all floors and their tables) in one call.</summary>

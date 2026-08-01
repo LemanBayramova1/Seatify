@@ -13,6 +13,7 @@ import { FilterBar } from "./FilterBar";
 import { BookingModal } from "./BookingModal";
 import { ReviewModal } from "./ReviewModal";
 import { TableDetailsDrawer } from "./TableDetailsDrawer";
+import { VenueReviews } from "./VenueReviews";
 
 const STAGE_WIDTH = 860;
 const STAGE_HEIGHT = 560;
@@ -30,10 +31,12 @@ export function BookingMap({ venueId, restaurant }) {
   const [errorMessage, setErrorMessage] = useState(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [ratingInfo, setRatingInfo] = useState({ rating: restaurant?.rating, reviewCount: restaurant?.reviewCount });
+  const [reviewsVersion, setReviewsVersion] = useState(0);
   const prevSlotRef = useRef({ date: filters.date, timeSlot: filters.timeSlot });
 
   function refreshRating() {
     getVenueById(venueId).then((data) => setRatingInfo({ rating: data.rating, reviewCount: data.reviewCount }));
+    setReviewsVersion((v) => v + 1);
   }
 
   function handleWriteReview() {
@@ -269,6 +272,8 @@ export function BookingMap({ venueId, restaurant }) {
           />
         )}
       </AnimatePresence>
+
+      <VenueReviews venueId={venueId} refreshKey={reviewsVersion} />
     </div>
   );
 }

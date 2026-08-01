@@ -11,6 +11,7 @@ const TYPE_ICON = {
   TableAvailable: "🪑",
   NewReview: "⭐",
   NewBooking: "📅",
+  ReviewReply: "💬",
 };
 
 export function NotificationBell() {

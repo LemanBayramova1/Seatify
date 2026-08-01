@@ -20,7 +20,7 @@ export function Toolbar() {
     try {
       await save();
     } catch (err) {
-      setSaveError(err.response?.data?.error ?? t("builder.saveFailed"));
+      setSaveError(err.response?.data?.error ?? err.response?.data?.message ?? err.message ?? t("builder.saveFailed"));
     }
   }
 

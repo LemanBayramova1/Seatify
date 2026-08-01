@@ -22,4 +22,7 @@ public interface INotificationService
 
     /// <summary>Notifies a venue's owner that a customer confirmed a new booking.</summary>
     Task NotifyNewBookingAsync(Guid ownerId, string venueName, string tableLabel);
+
+    /// <summary>Notifies a review's author that the venue owner replied to it.</summary>
+    Task NotifyReviewReplyAsync(Guid reviewAuthorId, string venueName);
 }

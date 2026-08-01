@@ -303,7 +303,8 @@
     "success": "Rəyiniz üçün təşəkkürlər!",
     "failure": "Rəyi göndərərkən xəta baş verdi.",
     "recentReviews": "Son rəylər",
-    "noReviews": "Hələ rəy yoxdur — ilk olun!"
+    "noReviews": "Hələ rəy yoxdur — ilk olun!",
+    "ownerReplyBadge": "Restoran Cavabı"
   },
   "admin": {
     "dashboardTitle": "İdarə paneli",
@@ -342,6 +343,8 @@
     "fieldBusinessEmail": "Biznes e-poçtu",
     "fieldDescription": "Təsvir",
     "fieldCoverImage": "Əsas şəkil URL-i",
+    "fieldOperatingHours": "İş Saatları",
+    "operatingHoursPlaceholder": "məs. B.e-B 10:00-23:00",
     "fieldCuisineTypes": "Mətbəx Növləri",
     "cuisinePlaceholder": "məs. İtalyan",
     "addItem": "Əlavə et",

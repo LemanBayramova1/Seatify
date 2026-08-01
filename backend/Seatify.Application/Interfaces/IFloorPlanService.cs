@@ -24,4 +24,15 @@ public interface IFloorPlanService
     /// the rest are created. Restricted to the venue's owner or an Admin.
     /// </summary>
     Task<List<FloorPlanDto>> SaveLayoutAsync(Guid callerId, bool callerIsAdmin, SaveLayoutRequestDto request);
+
+    /// <summary>Creates a single new floor/section for a venue. Restricted to the venue's owner or an Admin.</summary>
+    Task<FloorPlanDto> CreateFloorAsync(Guid venueId, Guid callerId, bool callerIsAdmin, CreateFloorRequestDto request);
+
+    /// <summary>Renames/reorders a single floor without touching its tables. Restricted to the
+    /// floor's venue owner or an Admin.</summary>
+    Task<FloorPlanDto> UpdateFloorAsync(Guid floorId, Guid callerId, bool callerIsAdmin, UpdateFloorRequestDto request);
+
+    /// <summary>Deletes a floor and cascades its tables — blocked if any of those tables has an
+    /// active hold or booking. Restricted to the floor's venue owner or an Admin.</summary>
+    Task DeleteFloorAsync(Guid floorId, Guid callerId, bool callerIsAdmin);
 }

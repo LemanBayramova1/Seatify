@@ -304,7 +304,8 @@
     "success": "Thanks for your review!",
     "failure": "Something went wrong submitting your review.",
     "recentReviews": "Recent reviews",
-    "noReviews": "No reviews yet — be the first!"
+    "noReviews": "No reviews yet — be the first!",
+    "ownerReplyBadge": "Restaurant Reply"
   },
   "admin": {
     "dashboardTitle": "Dashboard",
@@ -343,6 +344,8 @@
     "fieldBusinessEmail": "Business Email",
     "fieldDescription": "Description",
     "fieldCoverImage": "Cover Image URL",
+    "fieldOperatingHours": "Operating Hours",
+    "operatingHoursPlaceholder": "e.g. Mon-Sun 10:00-23:00",
     "fieldCuisineTypes": "Cuisine Types",
     "cuisinePlaceholder": "e.g. Italian",
     "addItem": "Add",

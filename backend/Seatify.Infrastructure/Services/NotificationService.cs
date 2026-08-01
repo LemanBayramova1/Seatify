@@ -146,6 +146,22 @@ public class NotificationService : INotificationService
         await _realtimeNotifier.NotifyUserAsync(ownerId, ToDto(notification));
     }
 
+    public async Task NotifyReviewReplyAsync(Guid reviewAuthorId, string venueName)
+    {
+        var notification = new Notification
+        {
+            UserId = reviewAuthorId,
+            Title = "Rəyinizə cavab verildi!",
+            Message = $"{venueName} rəyinizə cavab verdi.",
+            Type = NotificationType.ReviewReply
+        };
+
+        _db.Notifications.Add(notification);
+        await _db.SaveChangesAsync();
+
+        await _realtimeNotifier.NotifyUserAsync(reviewAuthorId, ToDto(notification));
+    }
+
     private static NotificationDto ToDto(Notification n) => new()
     {
         Id = n.Id,

@@ -46,9 +46,17 @@ const SHAPE_FROM_API = {
 };
 
 function tableElementToApi(el) {
+  // Defensive clamping at the network boundary: the properties panel's number inputs let a table
+  // momentarily hold an empty/NaN/zero value mid-edit (e.g. clearing the field to retype it), and
+  // the backend's Capacity/Label are required/[Range(1,100)] — an out-of-range value here used to
+  // fail the ENTIRE layout save with a validation error naming a field, not the offending table.
+  const capacity = Number.isFinite(el.capacity) && el.capacity > 0 ? Math.round(el.capacity) : 1;
+  const depositFee = Number.isFinite(el.minDeposit) && el.minDeposit >= 0 ? el.minDeposit : 0;
+  const label = typeof el.label === "string" && el.label.trim() ? el.label.trim() : "Table";
+
   return {
     id: GUID_PATTERN.test(el.id) ? el.id : undefined,
-    label: el.label,
+    label,
     x: el.x,
     y: el.y,
     width: el.width,
@@ -56,8 +64,38 @@ function tableElementToApi(el) {
     rotation: el.rotation ?? 0,
     shape: SHAPE_TO_API[el.type] ?? "Rectangle",
     zone: el.zone,
-    capacity: el.capacity ?? 0,
-    depositFee: el.minDeposit ?? 0,
+    capacity,
+    depositFee,
+  };
+}
+
+// Decorative elements (doors, windows, walls, stage, bar, zone labels) aren't bookable Tables —
+// they round-trip through FloorPlan.LayoutData (a separate, weakly-typed JSON blob) instead of
+// the Tables list, so a decoration's loose shape never has to satisfy Table's stricter
+// validation (Capacity/Label/etc.) and can never fail a save over that.
+function decorativeElementToApi(el) {
+  return {
+    id: el.id,
+    type: el.type,
+    label: el.label ?? "",
+    x: el.x,
+    y: el.y,
+    width: el.width,
+    height: el.height,
+    rotation: el.rotation ?? 0,
+  };
+}
+
+function apiElementToDecorative(el) {
+  return {
+    id: el.id,
+    type: el.type,
+    label: el.label ?? "",
+    x: el.x,
+    y: el.y,
+    width: el.width,
+    height: el.height,
+    rotation: el.rotation ?? 0,
   };
 }
 
@@ -726,7 +764,7 @@ function floorPlanFromApi(fp) {
     canvasWidth: fp.canvasWidth,
     canvasHeight: fp.canvasHeight,
     backgroundImageUrl: fp.backgroundImageUrl ?? null,
-    elements: fp.tables.map(apiTableToElement),
+    elements: [...fp.tables.map(apiTableToElement), ...(fp.elements ?? []).map(apiElementToDecorative)],
   };
 }
 
@@ -761,6 +799,7 @@ export async function saveLayout(venueId, floorPlans) {
       canvasWidth: fp.canvasWidth,
       canvasHeight: fp.canvasHeight,
       tables: fp.elements.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).map(tableElementToApi),
+      elements: fp.elements.filter((el) => !TABLE_ELEMENT_TYPES.includes(el.type)).map(decorativeElementToApi),
     })),
   });
   return data.map(floorPlanFromApi);

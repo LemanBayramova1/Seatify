@@ -10,6 +10,7 @@ public class VenueDto
     public string? City { get; set; }
     public string? BusinessEmail { get; set; }
     public string? BusinessPhone { get; set; }
+    public string? OperatingHours { get; set; }
     public List<string> CuisineTypes { get; set; } = new();
     public List<string> GalleryImageUrls { get; set; } = new();
 

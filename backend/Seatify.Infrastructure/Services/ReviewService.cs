@@ -95,6 +95,8 @@ public class ReviewService : IReviewService
         review.OwnerReplyDate = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        await _notificationService.NotifyReviewReplyAsync(review.UserId, review.Venue.Name);
+
         return ToDto(review);
     }
 

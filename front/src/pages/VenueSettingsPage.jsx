@@ -42,6 +42,7 @@ export default function VenueSettingsPage() {
           businessPhone: details.businessPhone ?? "",
           description: details.description ?? "",
           imageUrl: details.imageUrl ?? "",
+          operatingHours: details.operatingHours ?? "",
           cuisineTypes: details.cuisineTypes ?? [],
           galleryImageUrls: details.galleryImageUrls ?? [],
         });
@@ -172,6 +173,16 @@ export default function VenueSettingsPage() {
               placeholder="https://…"
               value={form.imageUrl}
               onChange={(e) => update({ imageUrl: e.target.value })}
+            />
+          </Field>
+
+          <Field label={t("admin.fieldOperatingHours")}>
+            <input
+              className="glass-input w-full"
+              placeholder={t("admin.operatingHoursPlaceholder")}
+              maxLength={200}
+              value={form.operatingHours}
+              onChange={(e) => update({ operatingHours: e.target.value })}
             />
           </Field>
 

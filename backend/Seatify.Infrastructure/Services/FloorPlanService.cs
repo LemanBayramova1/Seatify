@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Seatify.Application.Common.Exceptions;
 using Seatify.Application.DTOs.FloorPlans;
@@ -85,7 +86,7 @@ public class FloorPlanService : IFloorPlanService
 
         foreach (var tableRequest in request.Tables)
         {
-            var shape = Enum.Parse<TableShape>(tableRequest.Shape, ignoreCase: true);
+            var shape = ParseShape(tableRequest.Shape, tableRequest.Label);
 
             if (tableRequest.Id.HasValue)
             {
@@ -105,7 +106,15 @@ public class FloorPlanService : IFloorPlanService
             }
             else
             {
-                floorPlan.Tables.Add(new Table
+                // _db.Tables.Add (not floorPlan.Tables.Add) is required, not stylistic: Table.Id
+                // is a client-generated Guid (BaseEntity's `= Guid.NewGuid()` initializer) that's
+                // already non-default the instant this object is constructed. Reaching a new
+                // entity only via a navigation collection on an already-tracked parent lets EF's
+                // disconnected-graph heuristic see that non-default key and infer
+                // EntityState.Modified instead of Added — it then issues an UPDATE that matches
+                // zero rows and throws DbUpdateConcurrencyException. Adding directly to the DbSet
+                // sidesteps the heuristic and forces the correct INSERT.
+                _db.Tables.Add(new Table
                 {
                     FloorPlanId = floorPlan.Id,
                     Label = tableRequest.Label.Trim(),
@@ -192,6 +201,17 @@ public class FloorPlanService : IFloorPlanService
 
             var savedFloorPlans = new List<FloorPlan>();
 
+            // Two passes, two SaveChanges calls: pass 1 only ever touches floor-plan rows
+            // (insert/update) and table DELETEs; pass 2 only ever touches table INSERT/UPDATEs.
+            // Splitting them is required, not just tidy — batching a floor_plans UPDATE together
+            // with a tables INSERT in the same SaveChangesAsync() call hits a real bug in the
+            // Sqlite provider's RETURNING-based affected-row-count check: it misattributes the
+            // inserted table's result to the floor plan's UPDATE, which then throws
+            // DbUpdateConcurrencyException ("expected to affect 1 row(s), but actually affected
+            // 0 row(s)") even though the floor plan row is untouched and perfectly fine. This is
+            // the exact "An unexpected error occurred" a user hits saving a table onto an
+            // existing floor — a brand-new floor plan (INSERT, not UPDATE) never triggered it,
+            // which is why it looked intermittent.
             foreach (var floorPlanRequest in request.FloorPlans)
             {
                 var floorPlan = floorPlanRequest.Id.HasValue
@@ -207,6 +227,7 @@ public class FloorPlanService : IFloorPlanService
                 floorPlan.Name = floorPlanRequest.Name.Trim();
                 floorPlan.Level = floorPlanRequest.Level;
                 floorPlan.BackgroundImageUrl = floorPlanRequest.BackgroundImageUrl;
+                floorPlan.LayoutData = SerializeElements(floorPlanRequest.Elements);
                 floorPlan.CanvasWidth = floorPlanRequest.CanvasWidth;
                 floorPlan.CanvasHeight = floorPlanRequest.CanvasHeight;
 
@@ -220,9 +241,19 @@ public class FloorPlanService : IFloorPlanService
                     _db.Tables.Remove(table);
                 }
 
+                savedFloorPlans.Add(floorPlan);
+            }
+
+            await _db.SaveChangesAsync();
+
+            // savedFloorPlans was built by iterating request.FloorPlans in the exact same order
+            // above (one entry appended per request item) — zip by position rather than
+            // matching on Name/Level, which could collide for two new same-named floors.
+            foreach (var (floorPlanRequest, floorPlan) in request.FloorPlans.Zip(savedFloorPlans))
+            {
                 foreach (var tableRequest in floorPlanRequest.Tables)
                 {
-                    var shape = Enum.Parse<TableShape>(tableRequest.Shape, ignoreCase: true);
+                    var shape = ParseShape(tableRequest.Shape, tableRequest.Label);
 
                     if (tableRequest.Id.HasValue)
                     {
@@ -243,7 +274,9 @@ public class FloorPlanService : IFloorPlanService
                     }
                     else
                     {
-                        floorPlan.Tables.Add(new Table
+                        // See the matching comment in SaveAsync above — _db.Tables.Add is required
+                        // here for the same reason, not floorPlan.Tables.Add.
+                        _db.Tables.Add(new Table
                         {
                             FloorPlanId = floorPlan.Id,
                             Label = tableRequest.Label.Trim(),
@@ -261,8 +294,6 @@ public class FloorPlanService : IFloorPlanService
                         });
                     }
                 }
-
-                savedFloorPlans.Add(floorPlan);
             }
 
             await _db.SaveChangesAsync();
@@ -277,6 +308,119 @@ public class FloorPlanService : IFloorPlanService
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<FloorPlanDto> CreateFloorAsync(Guid venueId, Guid callerId, bool callerIsAdmin, CreateFloorRequestDto request)
+    {
+        var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == venueId)
+            ?? throw new NotFoundException(nameof(Venue), venueId);
+
+        if (!callerIsAdmin && venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        var floorPlan = new FloorPlan
+        {
+            VenueId = venueId,
+            Name = request.Name.Trim(),
+            Level = request.Level,
+            BackgroundImageUrl = request.BackgroundImageUrl,
+            CanvasWidth = request.CanvasWidth,
+            CanvasHeight = request.CanvasHeight
+        };
+
+        _db.FloorPlans.Add(floorPlan);
+        await _db.SaveChangesAsync();
+
+        return ToDto(floorPlan);
+    }
+
+    public async Task<FloorPlanDto> UpdateFloorAsync(Guid floorId, Guid callerId, bool callerIsAdmin, UpdateFloorRequestDto request)
+    {
+        var floorPlan = await _db.FloorPlans
+            .Include(f => f.Venue)
+            .Include(f => f.Tables)
+            .FirstOrDefaultAsync(f => f.Id == floorId)
+            ?? throw new NotFoundException(nameof(FloorPlan), floorId);
+
+        if (!callerIsAdmin && floorPlan.Venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        floorPlan.Name = request.Name.Trim();
+        floorPlan.Level = request.Level;
+        floorPlan.BackgroundImageUrl = request.BackgroundImageUrl;
+        if (request.CanvasWidth.HasValue)
+        {
+            floorPlan.CanvasWidth = request.CanvasWidth.Value;
+        }
+        if (request.CanvasHeight.HasValue)
+        {
+            floorPlan.CanvasHeight = request.CanvasHeight.Value;
+        }
+
+        await _db.SaveChangesAsync();
+
+        var dto = ToDto(floorPlan);
+        await AttachActiveHoldsAsync(dto.Tables);
+        return dto;
+    }
+
+    public async Task DeleteFloorAsync(Guid floorId, Guid callerId, bool callerIsAdmin)
+    {
+        var floorPlan = await _db.FloorPlans
+            .Include(f => f.Venue)
+            .Include(f => f.Tables)
+            .FirstOrDefaultAsync(f => f.Id == floorId)
+            ?? throw new NotFoundException(nameof(FloorPlan), floorId);
+
+        if (!callerIsAdmin && floorPlan.Venue.OwnerId != callerId)
+        {
+            throw new UnauthorizedAppException("You do not manage this venue.");
+        }
+
+        await EnsureNoActiveReservationsAsync(floorPlan.Tables.Select(t => t.Id), floorPlan.Name);
+
+        _db.FloorPlans.Remove(floorPlan);
+        await _db.SaveChangesAsync();
+    }
+
+    private static string? SerializeElements(List<LayoutElementDto>? elements) =>
+        elements is null || elements.Count == 0 ? null : JsonSerializer.Serialize(elements);
+
+    /// <summary>Never throws on corrupt/legacy LayoutData — a floor plan should still load (just
+    /// without its decorations) rather than fail entirely over a malformed JSON blob.</summary>
+    private static List<LayoutElementDto> DeserializeElements(string? layoutData)
+    {
+        if (string.IsNullOrWhiteSpace(layoutData))
+        {
+            return new List<LayoutElementDto>();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<LayoutElementDto>>(layoutData) ?? new List<LayoutElementDto>();
+        }
+        catch (JsonException)
+        {
+            return new List<LayoutElementDto>();
+        }
+    }
+
+    /// <summary>A bad/unrecognized shape string used to throw an unhandled ArgumentException from
+    /// Enum.Parse, which the global exception handler could only report as an opaque 500 — this
+    /// surfaces a clear 400 naming the offending table instead.</summary>
+    private static TableShape ParseShape(string? shape, string tableLabel)
+    {
+        if (!Enum.TryParse<TableShape>(shape, ignoreCase: true, out var parsed))
+        {
+            throw new ValidationException(
+                $"Invalid shape '{shape}' for table '{tableLabel}'. Expected Rectangle, Circle, or Square.");
+        }
+
+        return parsed;
     }
 
     private async Task EnsureNoActiveReservationsAsync(IEnumerable<Guid> tableIds, string floorPlanName)
@@ -376,6 +520,7 @@ public class FloorPlanService : IFloorPlanService
             DepositFee = t.DepositFee,
             Status = t.Status.ToString(),
             IsActive = t.IsActive
-        }).ToList()
+        }).ToList(),
+        Elements = DeserializeElements(floorPlan.LayoutData)
     };
 }

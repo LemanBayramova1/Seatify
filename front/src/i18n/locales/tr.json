@@ -304,7 +304,8 @@
     "success": "Değerlendirmeniz için teşekkürler!",
     "failure": "Değerlendirmeniz gönderilirken bir sorun oluştu.",
     "recentReviews": "Son değerlendirmeler",
-    "noReviews": "Henüz değerlendirme yok — ilk siz olun!"
+    "noReviews": "Henüz değerlendirme yok — ilk siz olun!",
+    "ownerReplyBadge": "İşletme Yanıtı"
   },
   "admin": {
     "dashboardTitle": "Kontrol Paneli",
@@ -343,6 +344,8 @@
     "fieldBusinessEmail": "İş E-postası",
     "fieldDescription": "Açıklama",
     "fieldCoverImage": "Kapak Görseli URL",
+    "fieldOperatingHours": "Çalışma Saatleri",
+    "operatingHoursPlaceholder": "örn. Pzt-Paz 10:00-23:00",
     "fieldCuisineTypes": "Mutfak Türleri",
     "cuisinePlaceholder": "örn. İtalyan",
     "addItem": "Ekle",

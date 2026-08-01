@@ -148,6 +148,12 @@ export function ReviewModal({ venueId, restaurantName, onClose, onSubmitted }) {
                         <span className="text-amber-300">{"★".repeat(r.rating)}</span>
                       </div>
                       {r.comment && <p className="mt-0.5 text-slate-400">{r.comment}</p>}
+                      {r.ownerReply && (
+                        <div className="mt-1.5 rounded-lg border border-brand-400/20 bg-brand-500/[0.06] px-2 py-1.5">
+                          <p className="text-[10px] font-semibold text-brand-400">{t("reviewModal.ownerReplyBadge")}</p>
+                          <p className="mt-0.5 text-slate-300">{r.ownerReply}</p>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

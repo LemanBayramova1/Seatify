@@ -16,5 +16,11 @@ public class FloorPlan : BaseEntity
     public double CanvasWidth { get; set; } = 1000;
     public double CanvasHeight { get; set; } = 700;
 
+    /// <summary>JSON-serialized array of purely-decorative canvas elements (doors, windows,
+    /// walls, stage, bar) that aren't bookable Tables — kept separate from the Tables relation
+    /// so a decoration's loose shape never has to satisfy Table's stricter validation
+    /// (Capacity/Label/etc.), and a malformed entry here can never break a reservation.</summary>
+    public string? LayoutData { get; set; }
+
     public ICollection<Table> Tables { get; set; } = new List<Table>();
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Seatify.Application.Common.Exceptions;
 using Seatify.Application.DTOs.FloorPlans;
 using Seatify.Application.Interfaces;
 using Seatify.Domain.Enums;
@@ -33,8 +34,21 @@ public class FloorPlansController : ApiControllerBase
     [Authorize(Roles = $"{nameof(UserRole.RestaurantOwner)},{nameof(UserRole.Admin)}")]
     public async Task<ActionResult<List<FloorPlanDto>>> SaveLayout(SaveLayoutRequestDto request)
     {
-        var isAdmin = User.IsInRole(nameof(UserRole.Admin));
-        var result = await _floorPlanService.SaveLayoutAsync(CurrentUserId, isAdmin, request);
-        return Ok(result);
+        try
+        {
+            var isAdmin = User.IsInRole(nameof(UserRole.Admin));
+            var result = await _floorPlanService.SaveLayoutAsync(CurrentUserId, isAdmin, request);
+            return Ok(result);
+        }
+        // Known, already-typed failures (not found / conflict / unauthorized / validation) keep
+        // flowing to ExceptionHandlingMiddleware, which maps them to their proper status code —
+        // this only catches genuinely unexpected failures, replacing the middleware's generic
+        // "An unexpected error occurred." with the real cause so a layout save failure is
+        // actionable instead of opaque.
+        catch (Exception ex) when (ex is not NotFoundException and not ConflictException
+            and not UnauthorizedAppException and not ValidationException and not GoneException)
+        {
+            return BadRequest(new { error = ex.Message, message = ex.Message, details = ex.InnerException?.Message });
+        }
     }
 }

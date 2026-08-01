@@ -5,5 +5,6 @@ public enum NotificationType
     NewVenue,
     TableAvailable,
     NewReview,
-    NewBooking
+    NewBooking,
+    ReviewReply
 }

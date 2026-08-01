@@ -171,7 +171,9 @@ export function PropertiesModal() {
                       min={1}
                       className="glass-input w-full"
                       value={element.capacity}
-                      onChange={(e) => updateElement(element.id, { capacity: Number(e.target.value) }, { silent: true })}
+                      onChange={(e) =>
+                        updateElement(element.id, { capacity: Math.max(1, Number(e.target.value) || 1) }, { silent: true })
+                      }
                     />
                   </div>
                   <div>
@@ -182,7 +184,9 @@ export function PropertiesModal() {
                       step="1"
                       className="glass-input w-full"
                       value={element.minDeposit}
-                      onChange={(e) => updateElement(element.id, { minDeposit: Number(e.target.value) }, { silent: true })}
+                      onChange={(e) =>
+                        updateElement(element.id, { minDeposit: Math.max(0, Number(e.target.value) || 0) }, { silent: true })
+                      }
                     />
                   </div>
                   <div>

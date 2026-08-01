@@ -306,7 +306,8 @@
     "success": "Спасибо за ваш отзыв!",
     "failure": "Что-то пошло не так при отправке отзыва.",
     "recentReviews": "Последние отзывы",
-    "noReviews": "Пока нет отзывов — станьте первым!"
+    "noReviews": "Пока нет отзывов — станьте первым!",
+    "ownerReplyBadge": "Ответ ресторана"
   },
   "admin": {
     "dashboardTitle": "Панель управления",
@@ -345,6 +346,8 @@
     "fieldBusinessEmail": "Рабочая эл. почта",
     "fieldDescription": "Описание",
     "fieldCoverImage": "URL обложки",
+    "fieldOperatingHours": "Часы работы",
+    "operatingHoursPlaceholder": "напр. Пн-Вс 10:00-23:00",
     "fieldCuisineTypes": "Виды кухни",
     "cuisinePlaceholder": "напр. Итальянская",
     "addItem": "Добавить",

@@ -22,6 +22,11 @@ public class UpdateVenueRequestDto
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
 
+    /// <summary>Free-text operating hours (e.g. "Mon-Sun 10:00-23:00") — display/context metadata
+    /// only, same pattern as CuisineTypes/GalleryImageUrls.</summary>
+    [MaxLength(200)]
+    public string? OperatingHours { get; set; }
+
     public List<string> CuisineTypes { get; set; } = new();
     public List<string> GalleryImageUrls { get; set; } = new();
 }

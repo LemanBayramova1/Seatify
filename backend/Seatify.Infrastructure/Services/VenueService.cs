@@ -83,6 +83,7 @@ public class VenueService : IVenueService
         venue.BusinessPhone = request.BusinessPhone?.Trim();
         venue.Description = request.Description;
         venue.ImageUrl = request.ImageUrl;
+        venue.OperatingHours = request.OperatingHours?.Trim();
         venue.CuisineTypes = ToCsv(request.CuisineTypes);
         venue.GalleryImageUrls = ToCsv(request.GalleryImageUrls);
 
@@ -177,6 +178,7 @@ public class VenueService : IVenueService
             City = v.City,
             BusinessEmail = v.BusinessEmail,
             BusinessPhone = v.BusinessPhone,
+            OperatingHours = v.OperatingHours,
             CuisineTypes = FromCsv(v.CuisineTypes),
             GalleryImageUrls = FromCsv(v.GalleryImageUrls),
             Rating = stat.Average,
