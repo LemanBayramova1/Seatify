@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import Konva from "konva";
 import { Circle, Group, Line, Rect, Text, Transformer } from "react-konva";
+import { useTranslation } from "react-i18next";
 import { ELEMENT_TYPES, SELECTION_COLOR, SELECTION_GLOW, STATUS, STATUS_COLOR, STATUS_GLOW, zoneColor } from "../../lib/zones";
 import { getChairPositions } from "../../lib/chairLayout";
+import { getLocalizedElementLabel } from "../../lib/elementLabels";
 
 const TABLE_TYPES = new Set([ELEMENT_TYPES.ROUND_TABLE, ELEMENT_TYPES.SQUARE_TABLE, ELEMENT_TYPES.RECT_TABLE]);
 const GRID_SNAP = 10;
@@ -27,12 +29,14 @@ export function TableElement({
   onHover,
   onHoverEnd,
 }) {
+  const { i18n } = useTranslation();
   const shapeRef = useRef(null);
   const transformerRef = useRef(null);
   const pulseTweenRef = useRef(null);
   const hoverTweenRef = useRef(null);
   const isTable = TABLE_TYPES.has(element.type);
   const isEditor = mode === "editor";
+  const displayLabel = getLocalizedElementLabel(element, i18n.language);
 
   useEffect(() => {
     if (isEditor && isSelected && transformerRef.current && shapeRef.current) {
@@ -355,7 +359,7 @@ export function TableElement({
             y={element.y - 7}
             width={element.width}
             align="center"
-            text={isTable ? `${element.label}${element.capacity ? ` · ${element.capacity}p` : ""}` : element.label}
+            text={displayLabel}
             fontSize={12}
             fontStyle="700"
             fill={isTable && !isEditor ? "#f8fafc" : isLightDecor ? "#0b0e16" : "#e2e8f0"}

@@ -21,6 +21,12 @@ export const useChatbotStore = create((set, get) => ({
     const trimmed = text.trim();
     if (!trimmed) return;
 
+    // Captured before the new user turn is appended below, so it's exactly the prior
+    // conversation — resolves translation keys (the seeded greeting) to real text since the
+    // backend has no access to i18n. Sent on every request so the model can resolve short
+    // follow-ups ("30") against venue/date/time slots mentioned earlier in the chat.
+    const history = get().messages.map((m) => ({ role: m.role, text: m.isKey ? i18n.t(m.text) : m.text }));
+
     set((s) => ({
       messages: [...s.messages, { id: nextId++, role: "user", text: trimmed }],
       isSending: true,
@@ -30,7 +36,7 @@ export const useChatbotStore = create((set, get) => ({
       // The backend detects language from the message itself, but also uses this as a
       // tiebreaker for short/ambiguous messages ("hi", "ok") and to pick which language its
       // canned fallback reply is in if OpenRouter itself is unreachable.
-      const { data } = await http.post("/chatbot/message", { message: trimmed, language: i18n.language });
+      const { data } = await http.post("/chatbot/message", { message: trimmed, language: i18n.language, history });
       set((s) => ({
         messages: [...s.messages, { id: nextId++, role: "bot", text: data.reply }],
         isSending: false,

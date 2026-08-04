@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { getLocalizedElementLabel } from "../../lib/elementLabels";
 import { useAuthStore } from "../../store/useAuthStore";
 import { GlassCard } from "../shared/GlassCard";
 
@@ -15,10 +16,11 @@ const ZONE_FEATURE_KEYS = {
 };
 
 export function TableDetailsDrawer({ table, onClose, onReserve }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const openAuthModal = useAuthStore((s) => s.openAuthModal);
   const [specialRequests, setSpecialRequests] = useState("");
+  const displayLabel = getLocalizedElementLabel(table, i18n.language);
 
   const featureKeys = [ZONE_FEATURE_KEYS[table.zone] ?? ZONE_FEATURE_KEYS.GENERAL];
   if (table.zone === "VIP" || table.minDeposit >= 50) featureKeys.push("drawer.zoneFeature.staffPick");
@@ -43,7 +45,7 @@ export function TableDetailsDrawer({ table, onClose, onReserve }) {
         <div className="mb-4 flex items-start justify-between">
           <div>
             <p className="label-text mb-0">{t("drawer.title")}</p>
-            <h3 className="text-lg font-bold text-slate-100">{table.label}</h3>
+            <h3 className="text-lg font-bold text-slate-100">{displayLabel}</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200">
             ✕
@@ -51,7 +53,7 @@ export function TableDetailsDrawer({ table, onClose, onReserve }) {
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
-          <InfoStat label={t("drawer.tableId")} value={table.label} />
+          <InfoStat label={t("drawer.tableId")} value={displayLabel} />
           <InfoStat label={t("builder.zone")} value={t(`builder.zones.${table.zone}`)} />
           <InfoStat label={t("drawer.capacity")} value={t("guest.tooltip.capacity", { count: table.capacity })} />
           <InfoStat label={t("drawer.minSpend")} value={`${table.minDeposit} ${t("common.azn")}`} />

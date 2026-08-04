@@ -31,6 +31,7 @@ import {
   updateAdminUser,
 } from "../services/apiService";
 import { GlassCard } from "../components/shared/GlassCard";
+import { DateField } from "../components/shared/DateField";
 import { ConfirmDialog } from "../components/shared/ConfirmDialog";
 import { EditUserModal } from "../components/admin/EditUserModal";
 import { EditVenueModal } from "../components/admin/EditVenueModal";
@@ -598,12 +599,7 @@ function ReservationsTab({ t, reservations, filters, onFiltersChange, onApprove,
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <h2 className="text-base font-semibold text-slate-200">{t("admin.reservationsTitle")}</h2>
         <div className="flex flex-wrap gap-2">
-          <input
-            type="date"
-            className="glass-input"
-            value={filters.date}
-            onChange={(e) => onFiltersChange((f) => ({ ...f, date: e.target.value }))}
-          />
+          <DateField value={filters.date} onChange={(date) => onFiltersChange((f) => ({ ...f, date }))} />
           <select className="glass-input" value={filters.status} onChange={(e) => onFiltersChange((f) => ({ ...f, status: e.target.value }))}>
             <option value="">{t("admin.filterAnyStatus")}</option>
             {STATUS_OPTIONS.map((s) => (

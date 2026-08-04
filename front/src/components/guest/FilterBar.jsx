@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { isSlotPast, TIME_SLOTS, todayIso } from "../../lib/timeSlots";
 import { ZONES } from "../../lib/zones";
+import { DateField } from "../shared/DateField";
 import { GlassCard } from "../shared/GlassCard";
 
 export function FilterBar({ filters, onChange, availableZones }) {
@@ -13,13 +14,7 @@ export function FilterBar({ filters, onChange, availableZones }) {
       <GlassCard className="space-y-5 px-5 py-5">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-[auto_1fr_auto]">
           <Field label={t("guest.filters.date")}>
-            <input
-              type="date"
-              min={todayIso()}
-              className="glass-input"
-              value={filters.date}
-              onChange={(e) => onChange({ ...filters, date: e.target.value })}
-            />
+            <DateField min={todayIso()} value={filters.date} onChange={(date) => onChange({ ...filters, date })} />
           </Field>
 
           <Field label={t("guest.filters.timeSlot")}>

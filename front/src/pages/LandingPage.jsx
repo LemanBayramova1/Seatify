@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getVenues } from "../services/apiService";
 import { todayIso } from "../lib/timeSlots";
+import { DateField } from "../components/shared/DateField";
 import { GlassCard } from "../components/shared/GlassCard";
 import { RestaurantCard } from "../components/restaurants/RestaurantCard";
 import { ROLES, useAuthStore } from "../store/useAuthStore";
@@ -83,7 +84,7 @@ export default function LandingPage() {
             </div>
             <div className="min-w-[140px] flex-1">
               <label className="label-text">{t("landing.searchDate")}</label>
-              <input type="date" className="glass-input w-full" value={date} onChange={(e) => setDate(e.target.value)} />
+              <DateField min={todayIso()} className="w-full" value={date} onChange={setDate} />
             </div>
             <button type="submit" className="btn-primary">
               {t("landing.searchCta")}

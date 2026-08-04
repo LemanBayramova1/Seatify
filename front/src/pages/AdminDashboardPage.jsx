@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 import { getVenueDashboard, getVenueReservations, resolveMyVenueId } from "../services/apiService";
+import { DateField } from "../components/shared/DateField";
 import { GlassCard } from "../components/shared/GlassCard";
 
 const STATUS_OPTIONS = ["Confirmed", "Held", "Cancelled"];
@@ -116,12 +117,7 @@ export default function AdminDashboardPage() {
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-base font-semibold text-slate-200">{t("admin.reservationsTitle")}</h2>
           <div className="flex flex-wrap gap-2">
-            <input
-              type="date"
-              className="glass-input"
-              value={filters.date}
-              onChange={(e) => setFilters((f) => ({ ...f, date: e.target.value }))}
-            />
+            <DateField value={filters.date} onChange={(date) => setFilters((f) => ({ ...f, date }))} />
             <select
               className="glass-input"
               value={filters.status}

@@ -815,10 +815,10 @@ export async function getAvailability({ venueId, date, timeSlot, partySize, zone
     const plans = loadJSON(floorPlansKey(venueId), null) ?? seedFloorPlans(venueId);
     const reservations = readReservations(venueId);
     const now = Date.now();
+    const allElements = plans.flatMap((fp) => fp.elements);
 
-    const tables = plans
-      .flatMap((fp) => fp.elements)
-      .filter((el) => [ELEMENT_TYPES.ROUND_TABLE, ELEMENT_TYPES.SQUARE_TABLE, ELEMENT_TYPES.RECT_TABLE].includes(el.type))
+    const tables = allElements
+      .filter((el) => TABLE_ELEMENT_TYPES.includes(el.type))
       .filter((el) => (partySize ? el.capacity >= partySize : true))
       .filter((el) => (zone ? el.zone === zone : true))
       .map((el) => {
@@ -828,18 +828,26 @@ export async function getAvailability({ venueId, date, timeSlot, partySize, zone
         return { ...el, status };
       });
 
-    return { tables };
+    // Decorative elements (stage/bar/door/window/wall) aren't bookable — the partySize/zone
+    // filters above only ever apply to tables, so decor always passes through as-is.
+    const decor = allElements.filter((el) => !TABLE_ELEMENT_TYPES.includes(el.type));
+
+    return { tables: [...decor, ...tables] };
   }
 
   // There's no dedicated GET /tables/availability endpoint — reuse the floor plans fetch,
   // passing date/timeSlot through so the backend computes each table's Status for that exact
   // slot (see FloorPlanService.ApplySlotAvailabilityAsync), flattened across every zone/room,
-  // then apply the same partySize/zone filters client-side.
+  // then apply the same partySize/zone filters client-side. Decorative elements (stage/bar/
+  // door/window/wall) have no capacity/zone of their own, so they're never subject to these
+  // filters — only actual bookable tables are.
   const plans = await getFloorPlans(venueId, { date, timeSlot });
-  const tables = plans
-    .flatMap((fp) => fp.elements)
-    .filter((el) => (partySize ? el.capacity >= partySize : true))
-    .filter((el) => (zone ? el.zone === zone : true));
+  const tables = plans.flatMap((fp) => fp.elements).filter((el) => {
+    if (!TABLE_ELEMENT_TYPES.includes(el.type)) return true;
+    if (partySize && el.capacity < partySize) return false;
+    if (zone && el.zone !== zone) return false;
+    return true;
+  });
   return { tables };
 }
 

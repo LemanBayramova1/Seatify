@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { cancelHold, getAvailability, getVenueById, holdTable } from "../../services/apiService";
 import { joinVenue, leaveVenue, subscribe } from "../../services/realtimeBus";
 import { firstAvailableSlot, isSlotPast, todayIso, TIME_SLOTS } from "../../lib/timeSlots";
+import { TABLE_ELEMENT_TYPES, sortByZOrder } from "../../lib/zones";
+import { getLocalizedElementLabel } from "../../lib/elementLabels";
 import { useAuthStore } from "../../store/useAuthStore";
 import { TableElement } from "../admin/TableElement";
 import { Tooltip } from "../shared/Tooltip";
@@ -19,7 +21,7 @@ const STAGE_WIDTH = 860;
 const STAGE_HEIGHT = 560;
 
 export function BookingMap({ venueId, restaurant }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const openAuthModal = useAuthStore((s) => s.openAuthModal);
   const [filters, setFilters] = useState({ date: todayIso(), timeSlot: TIME_SLOTS[2], partySize: 2, zone: "" });
@@ -111,6 +113,7 @@ export function BookingMap({ venueId, restaurant }) {
   }, [venueId, filters.date, filters.timeSlot]);
 
   const visibleTables = tables.map((table) => ({ ...table, status: overrides[table.id] ?? table.status }));
+  const visibleTableCount = visibleTables.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).length;
   const drawerTable = selectedTableId && !activeBooking ? visibleTables.find((t) => t.id === selectedTableId) : null;
 
   function handleTableClick(table) {
@@ -206,7 +209,7 @@ export function BookingMap({ venueId, restaurant }) {
         )}
       </AnimatePresence>
 
-      {visibleTables.length === 0 && <p className="text-center text-sm text-slate-400">{t("guest.noResults")}</p>}
+      {visibleTableCount === 0 && <p className="text-center text-sm text-slate-400">{t("guest.noResults")}</p>}
 
       <div className="relative mx-auto" style={{ width: STAGE_WIDTH }}>
         <div
@@ -222,7 +225,7 @@ export function BookingMap({ venueId, restaurant }) {
         >
           <Stage width={STAGE_WIDTH} height={STAGE_HEIGHT}>
             <Layer>
-              {visibleTables.map((table) => (
+              {sortByZOrder(visibleTables).map((table) => (
                 <TableElement
                   key={table.id}
                   element={table}
@@ -240,7 +243,7 @@ export function BookingMap({ venueId, restaurant }) {
           <Tooltip visible={Boolean(hovered)} x={hovered?.x ?? 0} y={(hovered?.y ?? 0) - (hovered?.height ?? 0) / 2}>
             {hovered && (
               <div className="space-y-0.5">
-                <p className="font-semibold">{hovered.label}</p>
+                <p className="font-semibold">{getLocalizedElementLabel(hovered, i18n.language)}</p>
                 <p>{t("guest.tooltip.capacity", { count: hovered.capacity })}</p>
                 <p>{t("guest.tooltip.minSpend", { amount: hovered.minDeposit })}</p>
                 <p className="text-slate-400">{t("guest.tooltip.zone", { zone: t(`builder.zones.${hovered.zone}`) })}</p>

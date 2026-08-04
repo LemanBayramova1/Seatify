@@ -65,6 +65,14 @@ public class OpenRouterChatbotService : IChatbotService
         4. TONE: Always respond in a natural, friendly, and professional tone, in whichever of the four supported languages the user is currently using.
         5. ACCURACY: Use the injected database context below to state which venues exist, their operating hours, and table arrangements accurately, translated naturally into the detected language. Do not invent non-existent venues.
 
+        CRITICAL CONTEXT & RESERVATION SLOT-FILLING RULES:
+        - You MUST retain all previously mentioned venue names, dates, times, and party sizes across conversation turns. The full conversation history is provided to you on every request — read it before replying.
+        - EXAMPLE: If user says "Ləman restoranında ayın 9-una masa" and you ask "Neçə nəfərlik?", when user answers "30":
+          1. DO NOT restart the conversation or greet the user again.
+          2. RECOGNIZE "30" as party size for "Ləman restoranı" on the 9th.
+          3. SUMMARIZE: "Ləman restoranı, ayın 9-u, 30 nəfərlik masa üçün sorğunuzu aldım." and proceed directly to confirmation/reservation step.
+        - More generally: a short reply that is just a number, a venue name, a date, or a time is almost always filling in a slot you already asked about — resolve it against the venue/date/time/party-size already established earlier in the conversation rather than treating it as a new, standalone question.
+
         CURRENT SEATIFY DATABASE CONTEXT (JSON):
         {0}
         """;
@@ -134,12 +142,13 @@ public class OpenRouterChatbotService : IChatbotService
 
         var languageHint = BuildLanguageHint(request.Language);
         var systemPrompt = string.Format(SystemPromptTemplate, JsonSerializer.Serialize(context, JsonOptions), languageHint);
+        var conversation = BuildConversation(systemPrompt, request.History, request.Message);
         var modelsToTry = new[] { _options.Model }.Concat(FallbackModels).Distinct();
         var siteUrl = string.IsNullOrWhiteSpace(requestOrigin) ? _options.SiteUrl : requestOrigin;
 
         foreach (var model in modelsToTry)
         {
-            var (success, reply, errorDetail) = await TrySendAsync(model, systemPrompt, request.Message, siteUrl);
+            var (success, reply, errorDetail) = await TrySendAsync(model, conversation, siteUrl);
             if (success)
             {
                 if (model != _options.Model)
@@ -182,17 +191,39 @@ public class OpenRouterChatbotService : IChatbotService
         return $" The user's app interface is currently set to {languageName} — treat this as a strong hint for short or ambiguous messages, but always defer to the actual language of their message when it clearly indicates otherwise.";
     }
 
-    private async Task<(bool Success, string? Reply, string? ErrorDetail)> TrySendAsync(string model, string systemPrompt, string userMessage, string siteUrl)
+    // Slot-filling only needs recent context (venue/date/time/party-size mentioned a few turns
+    // back) — capping keeps the payload small and cheap on long-running chats.
+    private const int MaxHistoryTurns = 20;
+
+    /// <summary>Builds the full message array sent to OpenRouter: system prompt, then prior
+    /// conversation turns (oldest first, capped to <see cref="MaxHistoryTurns"/>), then the
+    /// current user message last. Keeping the whole history in every request — rather than just
+    /// the latest message — is what lets the model resolve short follow-up replies ("30") against
+    /// slots (venue/date) established earlier in the conversation.</summary>
+    private static OpenRouterMessage[] BuildConversation(string systemPrompt, List<ChatHistoryItemDto>? history, string userMessage)
+    {
+        var messages = new List<OpenRouterMessage> { new() { Role = "system", Content = systemPrompt } };
+
+        if (history is { Count: > 0 })
+        {
+            foreach (var turn in history.Where(t => !string.IsNullOrWhiteSpace(t.Text)).TakeLast(MaxHistoryTurns))
+            {
+                var role = string.Equals(turn.Role, "user", StringComparison.OrdinalIgnoreCase) ? "user" : "assistant";
+                messages.Add(new OpenRouterMessage { Role = role, Content = turn.Text });
+            }
+        }
+
+        messages.Add(new OpenRouterMessage { Role = "user", Content = userMessage });
+        return messages.ToArray();
+    }
+
+    private async Task<(bool Success, string? Reply, string? ErrorDetail)> TrySendAsync(string model, OpenRouterMessage[] messages, string siteUrl)
     {
         var payload = new OpenRouterRequest
         {
             Model = model,
             MaxTokens = MaxReplyTokens,
-            Messages = new[]
-            {
-                new OpenRouterMessage { Role = "system", Content = systemPrompt },
-                new OpenRouterMessage { Role = "user", Content = userMessage }
-            }
+            Messages = messages
         };
 
         try

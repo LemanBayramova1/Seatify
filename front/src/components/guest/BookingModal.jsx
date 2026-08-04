@@ -6,10 +6,11 @@ import { confirmBooking, createPaymentIntent } from "../../services/apiService";
 import { hasStripeKey, stripePromise } from "../../lib/stripe";
 import { useBookingsStore } from "../../store/useBookingsStore";
 import { AZ_PHONE_PATTERN, formatAzPhone } from "../../lib/phone";
+import { getLocalizedElementLabel } from "../../lib/elementLabels";
 import { GlassCard } from "../shared/GlassCard";
 
 export function BookingModal({ table, reservation, date, timeSlot, defaultGuests, specialRequests, venueId, restaurantName, onClose, onExpired }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [step, setStep] = useState("details");
   const [form, setForm] = useState({ name: "", phone: "", guests: defaultGuests });
   const [errors, setErrors] = useState({});
@@ -93,7 +94,7 @@ export function BookingModal({ table, reservation, date, timeSlot, defaultGuests
         <GlassCard className="w-[min(440px,92vw)] p-6">
           <div className="mb-5 flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-100">{t("bookingModal.title", { label: table.label })}</h2>
+              <h2 className="text-lg font-bold text-slate-100">{t("bookingModal.title", { label: getLocalizedElementLabel(table, i18n.language) })}</h2>
               <p className="text-xs text-slate-400">
                 {date} · {timeSlot}
               </p>
