@@ -5,6 +5,12 @@ import { useTranslation } from "react-i18next";
 import { BookingMap } from "../components/guest/BookingMap";
 import { getVenueById } from "../services/apiService";
 
+/**
+ * Customer-facing venue booking page.
+ * Loads the venue for the `venueId` route param and renders the interactive
+ * booking map once it's fetched; redirects back to the venue list if the
+ * venue can't be found.
+ */
 export default function CustomerBookingPage() {
   const { t } = useTranslation();
   const { venueId } = useParams();

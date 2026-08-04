@@ -7,6 +7,11 @@ import { Toolbar } from "../components/admin/Toolbar";
 import { PropertiesModal } from "../components/admin/PropertiesModal";
 import { useEditorStore } from "../store/useEditorStore";
 
+/**
+ * Restaurant Owner floor-plan builder page.
+ * Renders the floor tabs, toolbar, drag-and-drop canvas, toolbox, and the
+ * properties panel for editing the signed-in owner's venue layout.
+ */
 export default function AdminBuilderPage() {
   const { t } = useTranslation();
   const venueIsFallback = useEditorStore((s) => s.venueIsFallback);

@@ -6,6 +6,11 @@ import { useBookingsStore } from "../store/useBookingsStore";
 import { BookingCard } from "../components/bookings/BookingCard";
 import { GlassCard } from "../components/shared/GlassCard";
 
+/**
+ * "My Bookings" page for signed-in customers.
+ * Loads the current user's reservations on mount and renders them as
+ * cancellable booking cards, prompting sign-in if no user is logged in.
+ */
 export default function MyBookingsPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);

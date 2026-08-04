@@ -9,6 +9,11 @@ import { GlassCard } from "../components/shared/GlassCard";
 import { RestaurantCard } from "../components/restaurants/RestaurantCard";
 import { ROLES, useAuthStore } from "../store/useAuthStore";
 
+/**
+ * Public marketing/home page shown to signed-out visitors (and anyone
+ * hitting `/`). Shows the hero search form, feature highlights, a preview
+ * gallery of venues, a "how it works" walkthrough, and a closing CTA.
+ */
 export default function LandingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -29,6 +34,10 @@ export default function LandingPage() {
 
   const cuisines = useMemo(() => Array.from(new Set(restaurants.flatMap((r) => r.cuisines))).sort(), [restaurants]);
 
+  /**
+   * Submits the hero search form, forwarding the selected cuisine (if any)
+   * as a query param on navigation to the restaurants listing page.
+   */
   function handleSearch(e) {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -134,6 +143,7 @@ export default function LandingPage() {
   );
 }
 
+/** Small icon/title/body tile used in the landing page's "Features" section. */
 function FeatureCard({ icon, title, body }) {
   return (
     <GlassCard className="p-6 text-center">
@@ -144,6 +154,7 @@ function FeatureCard({ icon, title, body }) {
   );
 }
 
+/** Numbered step tile used in the landing page's "How it works" section. */
 function StepCard({ n, title, body }) {
   return (
     <GlassCard className="p-6">

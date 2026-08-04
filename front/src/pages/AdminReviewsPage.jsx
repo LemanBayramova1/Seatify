@@ -6,12 +6,19 @@ import { deleteReview, deleteReviewReply, getVenueReviews, replyToReview, resolv
 import { GlassCard } from "../components/shared/GlassCard";
 import { ConfirmDialog } from "../components/shared/ConfirmDialog";
 
+/** Tailwind classes for an owner-dashboard nav tab, styled by its active state. */
 function navTabClass(isActive) {
   return `rounded-full px-4 py-1.5 text-sm font-medium transition ${
     isActive ? "bg-brand-500 text-white shadow-glow" : "bg-white/[0.03] text-slate-400 hover:text-slate-200"
   }`;
 }
 
+/**
+ * Restaurant Owner reviews page.
+ * Resolves the signed-in owner's venue, lists its reviews with their average
+ * rating, and lets the owner reply to, edit, delete a reply from, or delete
+ * a review entirely.
+ */
 export default function AdminReviewsPage() {
   const { t } = useTranslation();
   const [venueId, setVenueId] = useState(null);
@@ -53,17 +60,20 @@ export default function AdminReviewsPage() {
   const reviewCount = reviews.length;
   const average = reviewCount ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0;
 
+  /** Opens the reply editor for a review, pre-filling any existing owner reply. */
   function startReply(review) {
     setReplyError(null);
     setReplyingId(review.id);
     setReplyDraft(review.ownerReply ?? "");
   }
 
+  /** Closes the reply editor and discards the in-progress draft. */
   function cancelReply() {
     setReplyingId(null);
     setReplyDraft("");
   }
 
+  /** Saves the drafted reply for a review and updates it in local state. */
   async function submitReply(review) {
     const reply = replyDraft.trim();
     if (!reply) return;
@@ -81,6 +91,7 @@ export default function AdminReviewsPage() {
     }
   }
 
+  /** Removes the owner's reply from a review, leaving the review itself intact. */
   async function deleteReply(review) {
     setReplyBusyId(review.id);
     setReplyError(null);
@@ -94,6 +105,7 @@ export default function AdminReviewsPage() {
     }
   }
 
+  /** Permanently deletes the review currently pending confirmation. */
   async function confirmDelete() {
     const review = confirmDeleteReview;
     setConfirmDeleteReview(null);

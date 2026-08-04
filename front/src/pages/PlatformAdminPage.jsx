@@ -51,6 +51,12 @@ const STATUS_STYLE = {
 const TOOLTIP_STYLE = { background: "#0b0e16", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 12 };
 const AXIS_TICK = { fill: "#94a3b8", fontSize: 11 };
 
+/**
+ * Platform Admin control panel.
+ * Tabbed dashboard (overview/venues/users/reservations/reviews) that loads
+ * platform-wide data per tab and lets an admin moderate venues, users,
+ * reservations, and reviews across the whole platform.
+ */
 export default function PlatformAdminPage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState("overview");
@@ -172,11 +178,13 @@ export default function PlatformAdminPage() {
     });
   }, [users, userSearch, userRoleFilter]);
 
+  /** Shows a transient success message that auto-clears after 3 seconds. */
   function flashMessage(message) {
     setActionMessage(message);
     setTimeout(() => setActionMessage(null), 3000);
   }
 
+  /** Optimistically toggles a venue's active flag, rolling back on failure. */
   async function handleToggleActive(venueId, isActive) {
     setActionError(null);
     const previous = venues;
@@ -189,6 +197,7 @@ export default function PlatformAdminPage() {
     }
   }
 
+  /** Persists edits from the user-edit modal and updates the user in local state. */
   async function handleSaveUser(form) {
     const updated = await updateAdminUser(editingUser.id, form);
     setUsers((prev) => prev.map((u) => (u.id === editingUser.id ? { ...u, ...updated } : u)));
@@ -196,6 +205,7 @@ export default function PlatformAdminPage() {
     flashMessage(t("platformAdmin.userUpdated"));
   }
 
+  /** Optimistically toggles a user's active flag, rolling back on failure. */
   async function handleToggleUserActive(userId, isActive) {
     setActionError(null);
     const previous = users;
@@ -208,12 +218,17 @@ export default function PlatformAdminPage() {
     }
   }
 
+  /** Applies edits from the venue-edit modal to local state after a successful save. */
   function handleSaveVenue(updated) {
     setVenues((prev) => prev.map((v) => (v.id === editingVenueId ? { ...v, name: updated.name, city: updated.city } : v)));
     setEditingVenueId(null);
     flashMessage(t("platformAdmin.venueUpdated"));
   }
 
+  /**
+   * Executes the pending deletion (`confirmDelete.type`: user/venue/review),
+   * removes the deleted record from local state, and shows a flash message.
+   */
   async function handleConfirmDelete() {
     setActionError(null);
     const { type, id, venueId } = confirmDelete;
@@ -238,6 +253,7 @@ export default function PlatformAdminPage() {
     }
   }
 
+  /** Approves a held reservation and reflects the new status in local state. */
   async function handleApprove(reservationId) {
     setActionError(null);
     try {
@@ -248,6 +264,7 @@ export default function PlatformAdminPage() {
     }
   }
 
+  /** Rejects (cancels) a reservation and reflects the new status in local state. */
   async function handleReject(reservationId) {
     setActionError(null);
     try {
@@ -372,6 +389,7 @@ export default function PlatformAdminPage() {
   );
 }
 
+/** Overview tab: platform-wide metric tiles plus reservation/revenue/status charts. */
 function OverviewTab({ t, analytics }) {
   const statusData = analytics
     ? [
@@ -454,6 +472,7 @@ function OverviewTab({ t, analytics }) {
   );
 }
 
+/** Venues tab: table of all venues with active-toggle, edit, and delete actions. */
 function VenuesTab({ t, venues, onToggleActive, onEdit, onDelete }) {
   if (venues.length === 0) {
     return <p className="py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>;
@@ -510,6 +529,7 @@ function VenuesTab({ t, venues, onToggleActive, onEdit, onDelete }) {
   );
 }
 
+/** Users tab: searchable/filterable table of all users with edit/active-toggle/delete actions. */
 function UsersTab({ t, users, search, onSearchChange, roleFilter, onRoleFilterChange, onToggleActive, onEdit, onDelete }) {
   return (
     <GlassCard className="overflow-x-auto p-5">
@@ -593,6 +613,7 @@ function UsersTab({ t, users, search, onSearchChange, roleFilter, onRoleFilterCh
   );
 }
 
+/** Reservations tab: filterable table of platform-wide reservations with approve/reject actions. */
 function ReservationsTab({ t, reservations, filters, onFiltersChange, onApprove, onReject }) {
   return (
     <GlassCard className="p-5">
@@ -669,6 +690,7 @@ function ReservationsTab({ t, reservations, filters, onFiltersChange, onApprove,
   );
 }
 
+/** Reviews tab: filterable table of platform-wide reviews with a delete action. */
 function ReviewsTab({ t, reviews, venueFilter, onVenueFilterChange, ratingFilter, onRatingFilterChange, venueOptions, onDelete }) {
   if (reviews === null) {
     return <p className="py-8 text-center text-sm text-slate-400">{t("common.loading")}</p>;
@@ -736,6 +758,7 @@ function ReviewsTab({ t, reviews, venueFilter, onVenueFilterChange, ratingFilter
   );
 }
 
+/** Small label/value stat card used in the platform admin overview tab. */
 function MetricTile({ label, value }) {
   return (
     <GlassCard className="p-5">

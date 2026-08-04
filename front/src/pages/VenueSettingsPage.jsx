@@ -5,12 +5,19 @@ import { NavLink } from "react-router-dom";
 import { getVenueDetails, resolveMyVenueId, updateVenue } from "../services/apiService";
 import { GlassCard } from "../components/shared/GlassCard";
 
+/** Tailwind classes for an owner-dashboard nav tab, styled by its active state. */
 function navTabClass(isActive) {
   return `rounded-full px-4 py-1.5 text-sm font-medium transition ${
     isActive ? "bg-brand-500 text-white shadow-glow" : "bg-white/[0.03] text-slate-400 hover:text-slate-200"
   }`;
 }
 
+/**
+ * Restaurant Owner venue profile/settings page.
+ * Loads the signed-in owner's venue details into an editable form (name,
+ * contact info, description, cuisines, gallery, hours) and saves changes
+ * back to the API.
+ */
 export default function VenueSettingsPage() {
   const { t } = useTranslation();
   const [venueId, setVenueId] = useState(null);
@@ -55,10 +62,12 @@ export default function VenueSettingsPage() {
     };
   }, []);
 
+  /** Shallow-merges a patch into the venue settings form state. */
   function update(patch) {
     setForm((f) => ({ ...f, ...patch }));
   }
 
+  /** Adds the trimmed cuisine-input value to the form's cuisine list, if not already present. */
   function addCuisine() {
     const value = cuisineInput.trim();
     if (!value || form.cuisineTypes.includes(value)) return;
@@ -66,10 +75,12 @@ export default function VenueSettingsPage() {
     setCuisineInput("");
   }
 
+  /** Removes a cuisine from the form's cuisine list. */
   function removeCuisine(value) {
     update({ cuisineTypes: form.cuisineTypes.filter((c) => c !== value) });
   }
 
+  /** Adds the trimmed gallery-input URL to the form's gallery list, if not already present. */
   function addGalleryUrl() {
     const value = galleryInput.trim();
     if (!value || form.galleryImageUrls.includes(value)) return;
@@ -77,10 +88,12 @@ export default function VenueSettingsPage() {
     setGalleryInput("");
   }
 
+  /** Removes a URL from the form's gallery image list. */
   function removeGalleryUrl(value) {
     update({ galleryImageUrls: form.galleryImageUrls.filter((u) => u !== value) });
   }
 
+  /** Submits the venue settings form, persisting the edited venue details. */
   async function handleSave(e) {
     e.preventDefault();
     setIsSaving(true);
@@ -259,6 +272,7 @@ export default function VenueSettingsPage() {
   );
 }
 
+/** Labeled form-field wrapper used throughout the venue settings form. */
 function Field({ label, children }) {
   return (
     <div>

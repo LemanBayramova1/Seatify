@@ -15,6 +15,11 @@ const STATUS_STYLE = {
   Expired: "border-white/10 bg-white/[0.03] text-slate-400",
 };
 
+/**
+ * Restaurant Owner overview dashboard.
+ * Resolves the signed-in owner's venue, loads its summary metrics, and
+ * lists its reservations with date/status filtering.
+ */
 export default function AdminDashboardPage() {
   const { t } = useTranslation();
   const [venueId, setVenueId] = useState(null);
@@ -183,12 +188,14 @@ export default function AdminDashboardPage() {
   );
 }
 
+/** Tailwind classes for an owner-dashboard nav tab, styled by its active state. */
 function navTabClass(isActive) {
   return `rounded-full px-4 py-1.5 text-sm font-medium transition ${
     isActive ? "bg-brand-500 text-white shadow-glow" : "bg-white/[0.03] text-slate-400 hover:text-slate-200"
   }`;
 }
 
+/** Small label/value stat card used across the owner dashboard's metrics row. */
 function MetricTile({ label, value }) {
   return (
     <GlassCard className="p-5">

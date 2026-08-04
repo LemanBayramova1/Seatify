@@ -6,6 +6,11 @@ import { getVenues } from "../services/apiService";
 import { RestaurantCard } from "../components/restaurants/RestaurantCard";
 import { RestaurantFilters } from "../components/restaurants/RestaurantFilters";
 
+/**
+ * Restaurant discovery/listing page.
+ * Fetches all venues, derives the available cuisine/zone filter options,
+ * and renders the filterable grid of restaurant cards.
+ */
 export default function RestaurantsPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
