@@ -33,7 +33,7 @@ export function RestaurantCard({ restaurant }) {
           <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-xs font-semibold text-amber-300 backdrop-blur">
             {restaurant.reviewCount ? (
               <>
-                ★ {restaurant.rating.toFixed(1)} <span className="text-slate-400">({restaurant.reviewCount})</span>
+                ★ {restaurant.rating?.toFixed(1) ?? "0.0"} <span className="text-slate-400">({restaurant.reviewCount})</span>
               </>
             ) : (
               <span className="text-brand-300">{t("restaurants.newBadge")}</span>

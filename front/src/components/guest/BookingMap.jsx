@@ -161,7 +161,7 @@ export function BookingMap({ venueId, restaurant }) {
                   {restaurant.address} ·{" "}
                   {ratingInfo.reviewCount ? (
                     <>
-                      ★ {ratingInfo.rating.toFixed(1)}{" "}
+                      ★ {ratingInfo.rating?.toFixed(1) ?? "0.0"}{" "}
                       <span className="text-slate-500">({t("restaurants.reviewsCount", { count: ratingInfo.reviewCount })})</span>
                     </>
                   ) : (
