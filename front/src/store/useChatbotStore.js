@@ -41,10 +41,11 @@ export const useChatbotStore = create((set, get) => ({
         messages: [...s.messages, { id: nextId++, role: "bot", text: data.reply }],
         isSending: false,
       }));
-    } catch {
+    } catch (err) {
       // A down/unreachable chatbot endpoint degrades into an inline bot message instead of a
       // silently stuck "typing" state — matches how the rest of the app surfaces API failures.
       // `isKey` tells the widget to run this one through t() at render time.
+      console.error("Chatbot sendMessage failed:", err);
       set((s) => ({
         messages: [...s.messages, { id: nextId++, role: "bot", text: "chatbot.error", isKey: true }],
         isSending: false,

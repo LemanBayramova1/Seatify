@@ -128,6 +128,7 @@ export const useAuthStore = create((set) => ({
       set({ user, isSubmitting: false });
       return user;
     } catch (err) {
+      console.error("Login request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.loginFailed");
     }
@@ -187,6 +188,7 @@ export const useAuthStore = create((set) => ({
       // real session (token) only arrives once verifyOtp succeeds below.
       set({ isSubmitting: false, isModalOpen: false, otpModalOpen: true, pendingOtpEmail: email.trim() });
     } catch (err) {
+      console.error("Register request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.registerFailed");
     }
@@ -205,6 +207,7 @@ export const useAuthStore = create((set) => ({
       set({ user, isSubmitting: false });
       return user;
     } catch (err) {
+      console.error("Google login request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.googleFailed");
     }
@@ -218,6 +221,7 @@ export const useAuthStore = create((set) => ({
       await http.post("/auth/forgot-password", { email: email.trim() });
       set({ isSubmitting: false });
     } catch (err) {
+      console.error("Forgot-password request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.forgotPasswordFailed");
     }
@@ -229,6 +233,7 @@ export const useAuthStore = create((set) => ({
       await http.post("/auth/reset-password", { email: email.trim(), code: code.trim(), newPassword });
       set({ isSubmitting: false });
     } catch (err) {
+      console.error("Reset-password request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.resetPasswordFailed");
     }
@@ -245,6 +250,7 @@ export const useAuthStore = create((set) => ({
       set({ user, isSubmitting: false, otpModalOpen: false, pendingOtpEmail: null });
       return user;
     } catch (err) {
+      console.error("Verify-OTP request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.verifyOtpFailed");
     }
@@ -256,6 +262,7 @@ export const useAuthStore = create((set) => ({
       await http.post("/auth/send-otp", { email: email.trim() });
       set({ isSubmitting: false });
     } catch (err) {
+      console.error("Resend-OTP request failed:", err);
       set({ isSubmitting: false });
       throw new Error(err.response?.data?.error ?? "auth.errors.sendOtpFailed");
     }

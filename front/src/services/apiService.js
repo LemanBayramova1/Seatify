@@ -232,10 +232,15 @@ export async function getVenues() {
     await wait(jitter());
     return RESTAURANTS;
   }
-  const { data } = await http.get("/venues");
-  return Promise.all(
-    data.map(async (v) => apiVenueToRestaurant(v, await zonesOfferedFor(v.id)))
-  );
+  try {
+    const { data } = await http.get("/venues");
+    return await Promise.all(
+      data.map(async (v) => apiVenueToRestaurant(v, await zonesOfferedFor(v.id)))
+    );
+  } catch (err) {
+    console.error("getVenues failed:", err);
+    throw err;
+  }
 }
 
 /** Single venue's marketplace/booking-page metadata. */
@@ -244,8 +249,13 @@ export async function getVenueById(venueId) {
     await wait(jitter());
     return getRestaurant(venueId);
   }
-  const { data: v } = await http.get(`/venues/${venueId}`);
-  return apiVenueToRestaurant(v, await zonesOfferedFor(venueId));
+  try {
+    const { data: v } = await http.get(`/venues/${venueId}`);
+    return apiVenueToRestaurant(v, await zonesOfferedFor(venueId));
+  } catch (err) {
+    console.error("getVenueById failed:", err);
+    throw err;
+  }
 }
 
 /** Venues the signed-in Restaurant Owner manages — resolves which venueId the builder edits. */
@@ -254,8 +264,13 @@ export async function getMyVenues() {
     await wait(jitter());
     return [{ id: "demo-venue", name: "My Restaurant (Demo)" }];
   }
-  const { data } = await http.get("/venues/mine");
-  return data;
+  try {
+    const { data } = await http.get("/venues/mine");
+    return data;
+  } catch (err) {
+    console.error("getMyVenues failed:", err);
+    throw err;
+  }
 }
 
 /**
@@ -276,11 +291,16 @@ export async function resolveMyVenueId() {
     return { venueId: "demo-venue", venueName: "My Restaurant (Demo)", isFallback: true };
   }
 
-  const { data } = await http.get("/venues");
-  const fallback = data?.[0];
-  return fallback
-    ? { venueId: fallback.id, venueName: fallback.name, isFallback: true }
-    : { venueId: null, venueName: null, isFallback: false };
+  try {
+    const { data } = await http.get("/venues");
+    const fallback = data?.[0];
+    return fallback
+      ? { venueId: fallback.id, venueName: fallback.name, isFallback: true }
+      : { venueId: null, venueName: null, isFallback: false };
+  } catch (err) {
+    console.error("resolveMyVenueId fallback lookup failed:", err);
+    throw err;
+  }
 }
 
 const venueDetailsKey = (venueId) => `seatify.mock.venueDetails.v1.${venueId}`;
@@ -304,8 +324,13 @@ export async function getVenueDetails(venueId) {
     };
     return loadJSON(venueDetailsKey(venueId), null) ?? defaults;
   }
-  const { data } = await http.get(`/venues/${venueId}`);
-  return data;
+  try {
+    const { data } = await http.get(`/venues/${venueId}`);
+    return data;
+  } catch (err) {
+    console.error("getVenueDetails failed:", err);
+    throw err;
+  }
 }
 
 /** Owner-facing venue update (Venue Settings page). */
@@ -316,8 +341,13 @@ export async function updateVenue(venueId, payload) {
     saveJSON(venueDetailsKey(venueId), updated);
     return updated;
   }
-  const { data } = await http.put(`/venues/${venueId}`, payload);
-  return data;
+  try {
+    const { data } = await http.put(`/venues/${venueId}`, payload);
+    return data;
+  } catch (err) {
+    console.error("updateVenue failed:", err);
+    throw err;
+  }
 }
 
 /** Overview metrics for the owner dashboard. */
@@ -342,8 +372,13 @@ export async function getVenueDashboard(venueId) {
 
     return { todayReservations, activeHolds, totalTables, totalDepositRevenue };
   }
-  const { data } = await http.get(`/venues/${venueId}/dashboard`);
-  return data;
+  try {
+    const { data } = await http.get(`/venues/${venueId}/dashboard`);
+    return data;
+  } catch (err) {
+    console.error("getVenueDashboard failed:", err);
+    throw err;
+  }
 }
 
 // Mock bookings store status as "CONFIRMED" (see confirmBooking); normalize to the same
@@ -375,8 +410,13 @@ export async function getVenueReservations(venueId, { date, status } = {}) {
       createdAt: b.createdAt,
     }));
   }
-  const { data } = await http.get(`/venues/${venueId}/reservations`, { params: { date, status } });
-  return data;
+  try {
+    const { data } = await http.get(`/venues/${venueId}/reservations`, { params: { date, status } });
+    return data;
+  } catch (err) {
+    console.error("getVenueReservations failed:", err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -407,8 +447,13 @@ export async function getVenueReviews(venueId) {
     await wait(jitter());
     return readReviews(venueId);
   }
-  const { data } = await http.get(`/venues/${venueId}/reviews`);
-  return data;
+  try {
+    const { data } = await http.get(`/venues/${venueId}/reviews`);
+    return data;
+  } catch (err) {
+    console.error("getVenueReviews failed:", err);
+    throw err;
+  }
 }
 
 /** Submits (or updates, if the signed-in guest already reviewed this venue) a 1-5 star review. */
@@ -433,8 +478,13 @@ export async function submitReview(venueId, { rating, comment }) {
     writeReviews(venueId, reviews);
     return review;
   }
-  const { data } = await http.post(`/venues/${venueId}/reviews`, { rating, comment });
-  return data;
+  try {
+    const { data } = await http.post(`/venues/${venueId}/reviews`, { rating, comment });
+    return data;
+  } catch (err) {
+    console.error("submitReview failed:", err);
+    throw err;
+  }
 }
 
 function findMockReview(venueId, reviewId) {
@@ -453,8 +503,13 @@ export async function replyToReview(venueId, reviewId, reply) {
     writeReviews(venueId, reviews);
     return reviews[index];
   }
-  const { data } = await http.post(`/reviews/${reviewId}/reply`, { reply });
-  return data;
+  try {
+    const { data } = await http.post(`/reviews/${reviewId}/reply`, { reply });
+    return data;
+  } catch (err) {
+    console.error("replyToReview failed:", err);
+    throw err;
+  }
 }
 
 /** Removes the venue owner's reply from a review, leaving the review itself intact. */
@@ -467,8 +522,13 @@ export async function deleteReviewReply(venueId, reviewId) {
     writeReviews(venueId, reviews);
     return reviews[index];
   }
-  const { data } = await http.delete(`/reviews/${reviewId}/reply`);
-  return data;
+  try {
+    const { data } = await http.delete(`/reviews/${reviewId}/reply`);
+    return data;
+  } catch (err) {
+    console.error("deleteReviewReply failed:", err);
+    throw err;
+  }
 }
 
 /** Permanently deletes a review (Owner of the venue, or Admin, only). */
@@ -482,8 +542,13 @@ export async function deleteReview(venueId, reviewId) {
     }
     return { ok: true };
   }
-  await http.delete(`/reviews/${reviewId}`);
-  return { ok: true };
+  try {
+    await http.delete(`/reviews/${reviewId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("deleteReview failed:", err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -498,8 +563,13 @@ export async function getNotifications() {
     await wait(jitter());
     return loadJSON(notificationsKey(), []);
   }
-  const { data } = await http.get("/notifications");
-  return data;
+  try {
+    const { data } = await http.get("/notifications");
+    return data;
+  } catch (err) {
+    console.error("getNotifications failed:", err);
+    throw err;
+  }
 }
 
 /** Marks a single notification read (no-op if it's already read or not the caller's). */
@@ -510,8 +580,13 @@ export async function markNotificationRead(notificationId) {
     saveJSON(notificationsKey(), list.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)));
     return { ok: true };
   }
-  await http.put(`/notifications/${notificationId}/read`);
-  return { ok: true };
+  try {
+    await http.put(`/notifications/${notificationId}/read`);
+    return { ok: true };
+  } catch (err) {
+    console.error("markNotificationRead failed:", err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -562,24 +637,29 @@ export async function getAdminAnalytics() {
       statusBreakdown: { confirmed: bookings.length, held: 0, cancelled: 0, expired: 0 },
     };
   }
-  const { data } = await http.get("/admin/analytics");
-  return {
-    totalBookings: data.totalBookings,
-    monthlyRevenueAzn: data.monthlyRevenueAzn,
-    activeVenuesCount: data.activeVenuesCount,
-    registeredUsersCount: data.registeredUsersCount,
-    totalVenuesCount: data.totalVenuesCount,
-    activeBookingsCount: data.activeBookingsCount,
-    totalDepositsAzn: data.totalDepositsAzn,
-    reservationTrend: data.reservationTrend.map((d) => ({ date: d.date, count: d.count })),
-    revenueTrend: data.revenueTrend.map((d) => ({ date: d.date, amount: d.amount })),
-    statusBreakdown: {
-      confirmed: data.statusBreakdown.confirmed,
-      held: data.statusBreakdown.held,
-      cancelled: data.statusBreakdown.cancelled,
-      expired: data.statusBreakdown.expired,
-    },
-  };
+  try {
+    const { data } = await http.get("/admin/analytics");
+    return {
+      totalBookings: data.totalBookings,
+      monthlyRevenueAzn: data.monthlyRevenueAzn,
+      activeVenuesCount: data.activeVenuesCount,
+      registeredUsersCount: data.registeredUsersCount,
+      totalVenuesCount: data.totalVenuesCount,
+      activeBookingsCount: data.activeBookingsCount,
+      totalDepositsAzn: data.totalDepositsAzn,
+      reservationTrend: data.reservationTrend.map((d) => ({ date: d.date, count: d.count })),
+      revenueTrend: data.revenueTrend.map((d) => ({ date: d.date, amount: d.amount })),
+      statusBreakdown: {
+        confirmed: data.statusBreakdown.confirmed,
+        held: data.statusBreakdown.held,
+        cancelled: data.statusBreakdown.cancelled,
+        expired: data.statusBreakdown.expired,
+      },
+    };
+  } catch (err) {
+    console.error("getAdminAnalytics failed:", err);
+    throw err;
+  }
 }
 
 /** Every venue on the platform, with owner name + table count + active toggle. */
@@ -596,8 +676,13 @@ export async function getAdminVenues() {
       isActive: activeMap[r.id] ?? true,
     }));
   }
-  const { data } = await http.get("/admin/venues");
-  return data;
+  try {
+    const { data } = await http.get("/admin/venues");
+    return data;
+  } catch (err) {
+    console.error("getAdminVenues failed:", err);
+    throw err;
+  }
 }
 
 export async function toggleVenueActive(venueId, isActive) {
@@ -608,8 +693,13 @@ export async function toggleVenueActive(venueId, isActive) {
     saveJSON(MOCK_VENUE_ACTIVE_KEY, activeMap);
     return { ok: true };
   }
-  await http.patch(`/admin/venues/${venueId}/active`, { isActive });
-  return { ok: true };
+  try {
+    await http.patch(`/admin/venues/${venueId}/active`, { isActive });
+    return { ok: true };
+  } catch (err) {
+    console.error("toggleVenueActive failed:", err);
+    throw err;
+  }
 }
 
 /** Permanently removes a venue and everything under it (floor plans, tables, reservations, reviews). */
@@ -618,8 +708,13 @@ export async function deleteAdminVenue(venueId) {
     await wait(jitter());
     return { ok: true };
   }
-  await http.delete(`/admin/venues/${venueId}`);
-  return { ok: true };
+  try {
+    await http.delete(`/admin/venues/${venueId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("deleteAdminVenue failed:", err);
+    throw err;
+  }
 }
 
 /** Every review across every venue on the platform, newest first — Admin-only moderation view. */
@@ -630,8 +725,13 @@ export async function getAdminReviews() {
       readReviews(r.id).map((review) => ({ ...review, venueId: r.id, venueName: r.name })),
     ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
-  const { data } = await http.get("/admin/reviews");
-  return data;
+  try {
+    const { data } = await http.get("/admin/reviews");
+    return data;
+  } catch (err) {
+    console.error("getAdminReviews failed:", err);
+    throw err;
+  }
 }
 
 const MOCK_USER_ACTIVE_KEY = "seatify.mock.userActive.v1";
@@ -660,8 +760,13 @@ export async function getAdminUsers() {
     }));
     return [...seeded, ...registered].map((u) => ({ ...u, isActive: activeMap[u.id] ?? true }));
   }
-  const { data } = await http.get("/admin/users");
-  return data;
+  try {
+    const { data } = await http.get("/admin/users");
+    return data;
+  } catch (err) {
+    console.error("getAdminUsers failed:", err);
+    throw err;
+  }
 }
 
 /** Updates a user's name/email/phone/role. */
@@ -670,8 +775,13 @@ export async function updateAdminUser(userId, { name, email, phone, role }) {
     await wait(jitter());
     return { id: userId, name, email, phone, role };
   }
-  const { data } = await http.put(`/admin/users/${userId}`, { name, email, phone, role });
-  return data;
+  try {
+    const { data } = await http.put(`/admin/users/${userId}`, { name, email, phone, role });
+    return data;
+  } catch (err) {
+    console.error("updateAdminUser failed:", err);
+    throw err;
+  }
 }
 
 export async function toggleUserActive(userId, isActive) {
@@ -682,8 +792,13 @@ export async function toggleUserActive(userId, isActive) {
     saveJSON(MOCK_USER_ACTIVE_KEY, activeMap);
     return { ok: true };
   }
-  await http.patch(`/admin/users/${userId}/active`, { isActive });
-  return { ok: true };
+  try {
+    await http.patch(`/admin/users/${userId}/active`, { isActive });
+    return { ok: true };
+  } catch (err) {
+    console.error("toggleUserActive failed:", err);
+    throw err;
+  }
 }
 
 /** Permanently deletes a user account. */
@@ -692,8 +807,13 @@ export async function deleteAdminUser(userId) {
     await wait(jitter());
     return { ok: true };
   }
-  await http.delete(`/admin/users/${userId}`);
-  return { ok: true };
+  try {
+    await http.delete(`/admin/users/${userId}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("deleteAdminUser failed:", err);
+    throw err;
+  }
 }
 
 /** Every reservation on the platform, optionally filtered by date/status. */
@@ -718,8 +838,13 @@ export async function getAdminReservations({ date, status } = {}) {
       createdAt: b.createdAt,
     }));
   }
-  const { data } = await http.get("/admin/reservations", { params: { date, status } });
-  return data;
+  try {
+    const { data } = await http.get("/admin/reservations", { params: { date, status } });
+    return data;
+  } catch (err) {
+    console.error("getAdminReservations failed:", err);
+    throw err;
+  }
 }
 
 export async function approveReservation(reservationId) {
@@ -727,8 +852,13 @@ export async function approveReservation(reservationId) {
     await wait(jitter());
     return { ok: true };
   }
-  await http.post(`/admin/reservations/${reservationId}/approve`);
-  return { ok: true };
+  try {
+    await http.post(`/admin/reservations/${reservationId}/approve`);
+    return { ok: true };
+  } catch (err) {
+    console.error("approveReservation failed:", err);
+    throw err;
+  }
 }
 
 export async function rejectReservation(reservationId) {
@@ -748,8 +878,13 @@ export async function rejectReservation(reservationId) {
     writeBookings(bookings.filter((b) => b.id !== reservationId));
     return { ok: true };
   }
-  await http.post(`/admin/reservations/${reservationId}/reject`);
-  return { ok: true };
+  try {
+    await http.post(`/admin/reservations/${reservationId}/reject`);
+    return { ok: true };
+  } catch (err) {
+    console.error("rejectReservation failed:", err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -778,8 +913,13 @@ export async function getFloorPlans(venueId, { date, timeSlot } = {}) {
     await wait(jitter());
     return loadJSON(floorPlansKey(venueId), null) ?? seedFloorPlans(venueId);
   }
-  const { data } = await http.get(`/floorplans/${venueId}`, { params: { date, timeSlot } });
-  return data.map(floorPlanFromApi);
+  try {
+    const { data } = await http.get(`/floorplans/${venueId}`, { params: { date, timeSlot } });
+    return data.map(floorPlanFromApi);
+  } catch (err) {
+    console.error("getFloorPlans failed:", err);
+    throw err;
+  }
 }
 
 /** Replaces a venue's entire multi-floor layout — every zone/room and its tables — at once. */
@@ -789,20 +929,25 @@ export async function saveLayout(venueId, floorPlans) {
     saveJSON(floorPlansKey(venueId), floorPlans);
     return floorPlans;
   }
-  const { data } = await http.post("/floorplans/save-layout", {
-    restaurantId: venueId,
-    floorPlans: floorPlans.map((fp) => ({
-      id: fp.id && GUID_PATTERN.test(fp.id) ? fp.id : undefined,
-      name: fp.name,
-      level: fp.level,
-      backgroundImageUrl: fp.backgroundImageUrl,
-      canvasWidth: fp.canvasWidth,
-      canvasHeight: fp.canvasHeight,
-      tables: fp.elements.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).map(tableElementToApi),
-      elements: fp.elements.filter((el) => !TABLE_ELEMENT_TYPES.includes(el.type)).map(decorativeElementToApi),
-    })),
-  });
-  return data.map(floorPlanFromApi);
+  try {
+    const { data } = await http.post("/floorplans/save-layout", {
+      restaurantId: venueId,
+      floorPlans: floorPlans.map((fp) => ({
+        id: fp.id && GUID_PATTERN.test(fp.id) ? fp.id : undefined,
+        name: fp.name,
+        level: fp.level,
+        backgroundImageUrl: fp.backgroundImageUrl,
+        canvasWidth: fp.canvasWidth,
+        canvasHeight: fp.canvasHeight,
+        tables: fp.elements.filter((el) => TABLE_ELEMENT_TYPES.includes(el.type)).map(tableElementToApi),
+        elements: fp.elements.filter((el) => !TABLE_ELEMENT_TYPES.includes(el.type)).map(decorativeElementToApi),
+      })),
+    });
+    return data.map(floorPlanFromApi);
+  } catch (err) {
+    console.error("saveLayout failed:", err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -881,13 +1026,18 @@ export async function holdTable({ venueId, tableId, date, timeSlot, partySize })
 
     return { reservationId, tableId, date, timeSlot, status: STATUS.HELD, holdExpiresAt };
   }
-  const { data } = await http.post("/reservations/hold", {
-    tableId,
-    reservationDate: date,
-    timeSlot,
-    partySize,
-  });
-  return { ...data, holdExpiresAt: new Date(data.holdExpiresAt).getTime() };
+  try {
+    const { data } = await http.post("/reservations/hold", {
+      tableId,
+      reservationDate: date,
+      timeSlot,
+      partySize,
+    });
+    return { ...data, holdExpiresAt: new Date(data.holdExpiresAt).getTime() };
+  } catch (err) {
+    console.error("holdTable failed:", err);
+    throw err;
+  }
 }
 
 export async function cancelHold({ venueId, reservationId, tableId, date, timeSlot }) {
@@ -904,8 +1054,13 @@ export async function cancelHold({ venueId, reservationId, tableId, date, timeSl
     publish({ type: "TableStatusChanged", venueId, tableId, date, timeSlot, status: STATUS.FREE });
     return { ok: true };
   }
-  const { data } = await http.post(`/reservations/${reservationId}/cancel`);
-  return data;
+  try {
+    const { data } = await http.post(`/reservations/${reservationId}/cancel`);
+    return data;
+  } catch (err) {
+    console.error("cancelHold failed:", err);
+    throw err;
+  }
 }
 
 /**
@@ -977,31 +1132,36 @@ export async function confirmBooking({
     return { ok: true, reservationId, booking };
   }
 
-  const { data } = await http.post("/reservations/confirm", { reservationId, holdToken });
+  try {
+    const { data } = await http.post("/reservations/confirm", { reservationId, holdToken });
 
-  // The API's Reservation entity doesn't persist guest contact info, special requests, or
-  // zone — those are display-only conveniences here, filled in from what the client already
-  // knows. They won't come back from a later GET /reservations/my-bookings refresh.
-  const booking = {
-    id: data.id,
-    venueId,
-    restaurantName: restaurantName ?? data.venueName,
-    reservationId: data.id,
-    tableId: data.tableId,
-    tableLabel: data.tableLabel,
-    zone: zone ?? "GENERAL",
-    minDeposit: data.depositFee,
-    date: data.reservationDate,
-    timeSlot: data.timeSlot,
-    guests: data.partySize,
-    specialRequests: specialRequests || "",
-    guestName: name,
-    guestPhone: phone,
-    status: data.status.toUpperCase(),
-    createdAt: new Date(data.createdAt).getTime(),
-  };
+    // The API's Reservation entity doesn't persist guest contact info, special requests, or
+    // zone — those are display-only conveniences here, filled in from what the client already
+    // knows. They won't come back from a later GET /reservations/my-bookings refresh.
+    const booking = {
+      id: data.id,
+      venueId,
+      restaurantName: restaurantName ?? data.venueName,
+      reservationId: data.id,
+      tableId: data.tableId,
+      tableLabel: data.tableLabel,
+      zone: zone ?? "GENERAL",
+      minDeposit: data.depositFee,
+      date: data.reservationDate,
+      timeSlot: data.timeSlot,
+      guests: data.partySize,
+      specialRequests: specialRequests || "",
+      guestName: name,
+      guestPhone: phone,
+      status: data.status.toUpperCase(),
+      createdAt: new Date(data.createdAt).getTime(),
+    };
 
-  return { ok: true, reservationId: data.id, booking };
+    return { ok: true, reservationId: data.id, booking };
+  } catch (err) {
+    console.error("confirmBooking failed:", err);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1013,23 +1173,28 @@ export async function getMyBookings() {
     await wait(jitter());
     return readBookings();
   }
-  const { data } = await http.get("/reservations/my-bookings");
-  return data.map((r) => ({
-    id: r.id,
-    venueId: r.venueId,
-    restaurantName: r.venueName,
-    reservationId: r.id,
-    tableId: r.tableId,
-    tableLabel: r.tableLabel,
-    zone: "GENERAL", // not persisted by the API — see confirmBooking's remarks
-    minDeposit: r.depositFee,
-    date: r.reservationDate,
-    timeSlot: r.timeSlot,
-    guests: r.partySize,
-    specialRequests: "",
-    status: r.status.toUpperCase(),
-    createdAt: new Date(r.createdAt).getTime(),
-  }));
+  try {
+    const { data } = await http.get("/reservations/my-bookings");
+    return data.map((r) => ({
+      id: r.id,
+      venueId: r.venueId,
+      restaurantName: r.venueName,
+      reservationId: r.id,
+      tableId: r.tableId,
+      tableLabel: r.tableLabel,
+      zone: "GENERAL", // not persisted by the API — see confirmBooking's remarks
+      minDeposit: r.depositFee,
+      date: r.reservationDate,
+      timeSlot: r.timeSlot,
+      guests: r.partySize,
+      specialRequests: "",
+      status: r.status.toUpperCase(),
+      createdAt: new Date(r.createdAt).getTime(),
+    }));
+  } catch (err) {
+    console.error("getMyBookings failed:", err);
+    throw err;
+  }
 }
 
 export async function cancelBooking({ bookingId }) {
@@ -1049,6 +1214,11 @@ export async function cancelBooking({ bookingId }) {
     writeBookings(bookings.filter((b) => b.id !== bookingId));
     return { ok: true };
   }
-  await http.post(`/reservations/${bookingId}/cancel`);
-  return { ok: true };
+  try {
+    await http.post(`/reservations/${bookingId}/cancel`);
+    return { ok: true };
+  } catch (err) {
+    console.error("cancelBooking failed:", err);
+    throw err;
+  }
 }
