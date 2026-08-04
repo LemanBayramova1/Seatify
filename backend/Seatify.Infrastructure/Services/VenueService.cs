@@ -21,7 +21,7 @@ public class VenueService : IVenueService
 
     public async Task<List<VenueDto>> GetAllAsync()
     {
-        var venues = await _db.Venues.Where(v => v.IsActive).OrderBy(v => v.Name).ToListAsync();
+        var venues = await _db.Venues.AsNoTracking().Where(v => v.IsActive).OrderBy(v => v.Name).ToListAsync();
         var stats = await GetRatingStatsAsync(venues.Select(v => v.Id));
         return venues.Select(v => ToDto(v, stats)).ToList();
     }
@@ -61,7 +61,7 @@ public class VenueService : IVenueService
 
     public async Task<List<VenueDto>> GetMineAsync(Guid ownerId)
     {
-        var venues = await _db.Venues.Where(v => v.OwnerId == ownerId).OrderBy(v => v.Name).ToListAsync();
+        var venues = await _db.Venues.AsNoTracking().Where(v => v.OwnerId == ownerId).OrderBy(v => v.Name).ToListAsync();
         var stats = await GetRatingStatsAsync(venues.Select(v => v.Id));
         return venues.Select(v => ToDto(v, stats)).ToList();
     }
@@ -114,7 +114,7 @@ public class VenueService : IVenueService
 
     public async Task<VenueDashboardDto> GetDashboardAsync(Guid venueId, Guid callerId, bool callerIsAdmin)
     {
-        var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == venueId)
+        var venue = await _db.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.Id == venueId)
             ?? throw new NotFoundException(nameof(Venue), venueId);
 
         if (!callerIsAdmin && venue.OwnerId != callerId)

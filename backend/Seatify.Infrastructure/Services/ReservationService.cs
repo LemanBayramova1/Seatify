@@ -219,6 +219,7 @@ public class ReservationService : IReservationService
     public async Task<List<ReservationDto>> GetMyBookingsAsync(Guid userId)
     {
         var reservations = await _db.Reservations
+            .AsNoTracking()
             .Include(r => r.Table).ThenInclude(t => t.FloorPlan).ThenInclude(f => f.Venue)
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt)
@@ -229,7 +230,7 @@ public class ReservationService : IReservationService
 
     public async Task<List<ReservationDto>> GetVenueReservationsAsync(Guid venueId, Guid callerId, bool callerIsAdmin, DateOnly? date, string? status)
     {
-        var venue = await _db.Venues.FirstOrDefaultAsync(v => v.Id == venueId)
+        var venue = await _db.Venues.AsNoTracking().FirstOrDefaultAsync(v => v.Id == venueId)
             ?? throw new NotFoundException(nameof(Venue), venueId);
 
         if (!callerIsAdmin && venue.OwnerId != callerId)
@@ -238,6 +239,7 @@ public class ReservationService : IReservationService
         }
 
         var query = _db.Reservations
+            .AsNoTracking()
             .Include(r => r.Table).ThenInclude(t => t.FloorPlan).ThenInclude(f => f.Venue)
             .Where(r => r.Table.FloorPlan.VenueId == venueId);
 

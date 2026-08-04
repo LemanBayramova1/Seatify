@@ -22,6 +22,7 @@ public class NotificationService : INotificationService
     public async Task<List<NotificationDto>> GetForUserAsync(Guid userId)
     {
         var notifications = await _db.Notifications
+            .AsNoTracking()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .Take(50)

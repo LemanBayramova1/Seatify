@@ -86,6 +86,7 @@ public class AdminService : IAdminService
     public async Task<List<AdminVenueDto>> GetVenuesAsync()
     {
         var venues = await _db.Venues
+            .AsNoTracking()
             .Include(v => v.Owner)
             .Include(v => v.FloorPlans).ThenInclude(f => f.Tables)
             .OrderBy(v => v.Name)
@@ -133,7 +134,7 @@ public class AdminService : IAdminService
 
     public async Task<List<AdminUserDto>> GetUsersAsync()
     {
-        var users = await _db.Users.OrderByDescending(u => u.CreatedAt).ToListAsync();
+        var users = await _db.Users.AsNoTracking().OrderByDescending(u => u.CreatedAt).ToListAsync();
 
         return users.Select(ToUserDto).ToList();
     }
@@ -212,6 +213,7 @@ public class AdminService : IAdminService
     public async Task<List<ReservationDto>> GetReservationsAsync(DateOnly? date, string? status)
     {
         var query = _db.Reservations
+            .AsNoTracking()
             .Include(r => r.Table).ThenInclude(t => t.FloorPlan).ThenInclude(f => f.Venue)
             .AsQueryable();
 
@@ -294,6 +296,7 @@ public class AdminService : IAdminService
     public async Task<List<AdminReviewDto>> GetAllReviewsAsync()
     {
         var reviews = await _db.Reviews
+            .AsNoTracking()
             .Include(r => r.User)
             .Include(r => r.Venue)
             .OrderByDescending(r => r.CreatedAt)

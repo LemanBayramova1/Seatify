@@ -21,6 +21,7 @@ public class ReviewService : IReviewService
     public async Task<List<ReviewDto>> GetVenueReviewsAsync(Guid venueId)
     {
         var reviews = await _db.Reviews
+            .AsNoTracking()
             .Include(r => r.User)
             .Where(r => r.VenueId == venueId)
             .OrderByDescending(r => r.CreatedAt)

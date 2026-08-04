@@ -27,6 +27,7 @@ public class FloorPlanService : IFloorPlanService
         }
 
         var floorPlan = await _db.FloorPlans
+            .AsNoTracking()
             .Include(f => f.Tables)
             .FirstOrDefaultAsync(f => f.VenueId == venueId);
 
@@ -148,6 +149,7 @@ public class FloorPlanService : IFloorPlanService
         }
 
         var floorPlans = await _db.FloorPlans
+            .AsNoTracking()
             .Where(f => f.VenueId == venueId)
             .Include(f => f.Tables.Where(t => t.IsActive))
             .OrderBy(f => f.Level)
