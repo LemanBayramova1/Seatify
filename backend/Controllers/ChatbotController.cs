@@ -14,6 +14,7 @@ public class ChatbotController : ApiControllerBase
         _chatbotService = chatbotService;
     }
 
+    /// <summary>Sends a user message to the OpenRouter-backed AI chatbot and returns its reply.</summary>
     [HttpPost("message")]
     public async Task<ActionResult<ChatMessageResponseDto>> Message(ChatMessageRequestDto request)
     {

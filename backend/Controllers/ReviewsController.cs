@@ -16,6 +16,7 @@ public class ReviewsController : ApiControllerBase
         _reviewService = reviewService;
     }
 
+    /// <summary>Lists all reviews (with any owner replies) for a venue.</summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<ActionResult<List<ReviewDto>>> GetForVenue(Guid venueId)

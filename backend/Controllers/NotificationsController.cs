@@ -16,12 +16,14 @@ public class NotificationsController : ApiControllerBase
         _notificationService = notificationService;
     }
 
+    /// <summary>Lists the signed-in user's notifications, newest first.</summary>
     [HttpGet]
     public async Task<ActionResult<List<NotificationDto>>> GetMine()
     {
         return Ok(await _notificationService.GetForUserAsync(CurrentUserId));
     }
 
+    /// <summary>Marks a single notification belonging to the signed-in user as read.</summary>
     [HttpPut("{id:guid}/read")]
     public async Task<IActionResult> MarkRead(Guid id)
     {

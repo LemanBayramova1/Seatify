@@ -20,6 +20,7 @@ public class FloorsController : ApiControllerBase
         _floorPlanService = floorPlanService;
     }
 
+    /// <summary>Lists all floors/sections for a venue, each with its active tables.</summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<ActionResult<List<FloorPlanDto>>> GetFloors(Guid venueId)
@@ -27,6 +28,7 @@ public class FloorsController : ApiControllerBase
         return Ok(await _floorPlanService.GetAllByVenueIdAsync(venueId));
     }
 
+    /// <summary>Adds a single new floor/section to a venue.</summary>
     [HttpPost]
     [Authorize(Roles = $"{nameof(UserRole.RestaurantOwner)},{nameof(UserRole.Admin)}")]
     public async Task<ActionResult<FloorPlanDto>> CreateFloor(Guid venueId, CreateFloorRequestDto request)
@@ -36,6 +38,7 @@ public class FloorsController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Renames or otherwise updates a single existing floor.</summary>
     [HttpPut("~/api/floors/{floorId:guid}")]
     [Authorize(Roles = $"{nameof(UserRole.RestaurantOwner)},{nameof(UserRole.Admin)}")]
     public async Task<ActionResult<FloorPlanDto>> UpdateFloor(Guid floorId, UpdateFloorRequestDto request)
@@ -45,6 +48,7 @@ public class FloorsController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Deletes a single floor from a venue.</summary>
     [HttpDelete("~/api/floors/{floorId:guid}")]
     [Authorize(Roles = $"{nameof(UserRole.RestaurantOwner)},{nameof(UserRole.Admin)}")]
     public async Task<IActionResult> DeleteFloor(Guid floorId)

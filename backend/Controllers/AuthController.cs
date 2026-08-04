@@ -14,6 +14,7 @@ public class AuthController : ApiControllerBase
         _authService = authService;
     }
 
+    /// <summary>Registers a new Customer or RestaurantOwner account. Admin can't be self-assigned here.</summary>
     [HttpPost("register")]
     public async Task<ActionResult<MessageResponseDto>> Register(RegisterRequestDto request)
     {
@@ -21,6 +22,7 @@ public class AuthController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Authenticates with email/password and returns a JWT on success.</summary>
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginRequestDto request)
     {
@@ -28,6 +30,7 @@ public class AuthController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Signs in (or registers) a user via a Google OAuth 2.0 ID token and returns a JWT.</summary>
     [HttpPost("google")]
     public async Task<ActionResult<AuthResponseDto>> Google(GoogleAuthRequestDto request)
     {
@@ -35,6 +38,7 @@ public class AuthController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Sends a one-time password to the given account for passwordless verification.</summary>
     [HttpPost("send-otp")]
     public async Task<ActionResult<MessageResponseDto>> SendOtp(SendOtpRequestDto request)
     {
@@ -42,6 +46,7 @@ public class AuthController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Verifies a previously sent one-time password and returns a JWT on success.</summary>
     [HttpPost("verify-otp")]
     public async Task<ActionResult<AuthResponseDto>> VerifyOtp(VerifyOtpRequestDto request)
     {
@@ -49,6 +54,7 @@ public class AuthController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Starts the password-reset flow by sending a reset link/code to the account's email.</summary>
     [HttpPost("forgot-password")]
     public async Task<ActionResult<MessageResponseDto>> ForgotPassword(ForgotPasswordRequestDto request)
     {
@@ -56,6 +62,7 @@ public class AuthController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Completes the password-reset flow, setting a new password using a valid reset token.</summary>
     [HttpPost("reset-password")]
     public async Task<ActionResult<MessageResponseDto>> ResetPassword(ResetPasswordRequestDto request)
     {

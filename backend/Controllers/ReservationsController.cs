@@ -32,6 +32,7 @@ public class ReservationsController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Lists every reservation (Held, Confirmed, Cancelled, Expired) made by the signed-in user.</summary>
     [HttpGet("my-bookings")]
     public async Task<ActionResult<List<ReservationDto>>> MyBookings()
     {

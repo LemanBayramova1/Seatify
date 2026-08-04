@@ -22,6 +22,7 @@ public class VenuesController : ApiControllerBase
         _reservationService = reservationService;
     }
 
+    /// <summary>Lists every active venue on the platform.</summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<ActionResult<List<VenueDto>>> GetAll()
@@ -37,6 +38,7 @@ public class VenuesController : ApiControllerBase
         return Ok(await _venueService.GetMineAsync(CurrentUserId));
     }
 
+    /// <summary>Fetches a single venue's public details by id.</summary>
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
     public async Task<ActionResult<VenueDto>> GetById(Guid id)
@@ -44,6 +46,7 @@ public class VenuesController : ApiControllerBase
         return Ok(await _venueService.GetByIdAsync(id));
     }
 
+    /// <summary>Gets this venue's floor plan (table layout and current statuses).</summary>
     [HttpGet("{id:guid}/floorplan")]
     [AllowAnonymous]
     public async Task<ActionResult<FloorPlanDto>> GetFloorPlan(Guid id)
@@ -61,6 +64,7 @@ public class VenuesController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>Creates a new venue owned by the signed-in Restaurant Owner (or Admin).</summary>
     [HttpPost]
     [Authorize(Roles = $"{nameof(UserRole.RestaurantOwner)},{nameof(UserRole.Admin)}")]
     public async Task<ActionResult<VenueDto>> Create(CreateVenueRequestDto request)
